@@ -1,9 +1,9 @@
 name: build-test-deploy
 
 # cancel any other jobs in progress
-concurrency: 
-  group: build-test-deploy
-  cancel-in-progress: true
+#concurrency: 
+#  group: build-test-deploy
+#  cancel-in-progress: true
 
 on:
   workflow_call:
