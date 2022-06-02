@@ -1,0 +1,30 @@
+name: Build, Test, Deploy 
+
+# cancel any other jobs in progress
+#concurrency: 
+#  group: build-test-deploy
+#  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - stage
+  release:
+    types:
+      - published
+
+  
+# Required Secrets:
+# ECS_SERVICE_INSTANCE_NAME_STAGE
+# ECS_SERVICE_INSTANCE_NAME_PROD
+# SLACK_CHANNEL
+# REDIS_RELOAD
+# SEC_CHECK_DISABLED
+
+
+
+jobs:
+  call-workflow:
+    uses: avatarnewyork/.github/.github/workflows/build_test_deploy.yml@master
+    secrets: inherit
+      
