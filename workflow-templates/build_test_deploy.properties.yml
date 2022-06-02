@@ -1,7 +1,4 @@
 {
     "name": "Build Test Deploy",
-    "description": "Avatar New York CI/CD starter workflow.",
-    "categories": [
-        "PHP"
-    ]
+    "description": "Avatar New York CI/CD starter workflow."
 }
