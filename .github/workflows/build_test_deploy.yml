@@ -7,10 +7,6 @@ concurrency:
 
 on:
   workflow_call:
-    inputs:
-      username:
-        required: true
-        type: string
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
