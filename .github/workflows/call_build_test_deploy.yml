@@ -1,4 +1,4 @@
-name: Build, Test, Deploy 
+name: Call build-test-deploy reusable workflow
 
 # cancel any other jobs in progress
 #concurrency: 
@@ -24,12 +24,8 @@ on:
 
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Run a one-line script
-        run: echo Hello from Octo Organization
+  call-workflow:
+    if: github.repository != 'avatarnewyork/.github'
+    uses: avatarnewyork/.github/.github/workflows/build_test_deploy.yml@master
+    secrets: inherit
       
