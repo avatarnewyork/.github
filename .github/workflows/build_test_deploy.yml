@@ -242,7 +242,7 @@ jobs:
           docker build --compress --target=builder --cache-from=builder \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
-            -t builder
+            -t builder \
             --file=.docker-build/${{ env.APP_PLATFORM }}/Dockerfile .
           docker save builder | gzip > builder.tar.gz
         
