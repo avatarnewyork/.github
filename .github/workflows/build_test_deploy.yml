@@ -224,7 +224,9 @@ jobs:
             ${{ env.cache-version }}-${{ hashFiles('composer.lock', 'Dockerfile') }}
 
       - name: check platform
+        id: check-platform
         run: |
+          ls -lha
           if [[ -d "web/modules" ]]; then
             export APP_PLATFORM=drupal
           elif [[ -f "public/wp-settings.php" ]]; then
@@ -232,6 +234,7 @@ jobs:
           else
             export APP_PLATFORM=symfony
           fi
+          echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"          
             
       - name: Builder Image Build
         if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}        
@@ -243,7 +246,7 @@ jobs:
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             -t builder \
-            --file=.docker-build/${{ env.APP_PLATFORM }}/Dockerfile .
+            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile .
           docker save builder | gzip > builder.tar.gz
         
       - name: Build, tag, and push image to Amazon ECR
@@ -265,7 +268,8 @@ jobs:
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg BOOTSTRAP_DISABLED=1 \
-            --file=.docker-build/${{ env.APP_PLATFORM }}/Dockerfile .
+            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile .            
+
 
       - name: Push to Amazon ECR
         env:
