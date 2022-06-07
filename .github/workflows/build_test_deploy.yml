@@ -259,7 +259,7 @@ jobs:
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             -t builder \
-            --file=.docker-build/Dockerfile project
+            --file=project/.docker-build/Dockerfile project
           docker save builder | gzip > builder.tar.gz
         
       - name: Build, tag, and push image to Amazon ECR
@@ -281,7 +281,7 @@ jobs:
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg BOOTSTRAP_DISABLED=1 \
-            --file=.docker-build/Dockerfile project            
+            --file=project/.docker-build/Dockerfile project            
 
 
       - name: Push to Amazon ECR
