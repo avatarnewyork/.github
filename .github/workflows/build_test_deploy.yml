@@ -225,8 +225,8 @@ jobs:
           restore-keys: |
             ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', 'project/Dockerfile') }}
 
-      - name: check platform
-        id: check-platform
+      - name: copy platform specific build files
+        id: copy-platform-build-files
         run: |
           ls -lha
           if [[ -d "project/web/modules" ]]; then
@@ -236,8 +236,19 @@ jobs:
           else
             export APP_PLATFORM=symfony
           fi
-          echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"          
-            
+          echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"
+          # DOC: Allow for overrides if the .docker-build dir and associated files exist
+          if [[ -d project/.docker-build ]]; then
+            if [[ ! -f project/.docker-build/Dockerfile ]]; then
+              cp -a ".docker-build/${APP_PLATFORM}/Dockerfile" project/.docker-build/Dockerfile
+            fi
+            if [[ ! -f project/.docker-build/bootstrap.sh ]]; then
+              cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/.docker-build/bootstrap.sh
+            fi
+          else          
+            cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
+          fi
+          
       - name: Builder Image Build
         if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}        
         # TODO: DISABLE when done testing
@@ -248,7 +259,7 @@ jobs:
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             -t builder \
-            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile project
+            --file=.docker-build/Dockerfile project
           docker save builder | gzip > builder.tar.gz
         
       - name: Build, tag, and push image to Amazon ECR
@@ -270,7 +281,7 @@ jobs:
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg BOOTSTRAP_DISABLED=1 \
-            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile project            
+            --file=.docker-build/Dockerfile project            
 
 
       - name: Push to Amazon ECR
