@@ -199,9 +199,16 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - uses: actions/checkout@v3
+        with:
+          # Repository name with owner. For example, actions/checkout
+          # Default: ${{ github.repository }}
+          repository: 'avatarnewyork/docker-build'
+          path: '.docker-build'
+        
       - name: Checkout
         uses: actions/checkout@v2      
-
+        
       - name: Cache Builer Image
         id: cache-builder-image
         uses: actions/cache@v3
@@ -214,6 +221,16 @@ jobs:
           restore-keys: |
             ${{ env.cache-version }}-${{ hashFiles('composer.lock', 'Dockerfile') }}
 
+      - name: check platform
+        run: |
+          if [[ -d "web/modules" ]]; then
+            export APP_PLATFORM=drupal
+          elif [[ -f "public/wp-settings.php" ]]; then
+            export APP_PLATFORM=wordpress
+          else
+            export APP_PLATFORM=symfony
+          fi
+            
       - name: Builder Image Build
         if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}        
         # TODO: DISABLE when done testing
@@ -223,7 +240,8 @@ jobs:
           docker build --compress --target=builder --cache-from=builder \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
-            -t builder .
+            -t builder
+            --file=.docker-build/${{ env.APP_PLATFORM }}/Dockerfile .
           docker save builder | gzip > builder.tar.gz
         
       - name: Build, tag, and push image to Amazon ECR
@@ -238,7 +256,14 @@ jobs:
             echo "loading builder.tar.gz"
           fi
           
-          docker build --target=app --compress --cache-from=builder -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -t $ECR_REGISTRY/$ECR_REPOSITORY:test --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} --build-arg BOOTSTRAP_DISABLED=1 .
+          docker build --target=app --compress --cache-from=builder \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:test \
+            --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
+            --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
+            --build-arg BOOTSTRAP_DISABLED=1 \
+            --file=.docker-build/${{ env.APP_PLATFORM }}/Dockerfile .
 
       - name: Push to Amazon ECR
         env:
