@@ -205,6 +205,7 @@ jobs:
           # Default: ${{ github.repository }}
           repository: 'avatarnewyork/docker-build'
           path: '.docker-build'
+          ref: master
         
       - name: Checkout
         uses: actions/checkout@v2      
