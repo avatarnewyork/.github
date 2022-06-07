@@ -206,18 +206,13 @@ jobs:
           repository: 'avatarnewyork/docker-build'
           path: '.docker-build'
           ref: master
-          path: .docker-build
           token: ${{ secrets.ORG_PROJECT_TOKEN }} 
 
-      - name: debug-checkout
-        id: debug-checkout
-        run: |
-          ls -lha
-          ls -lha .docker-build
-          
       - name: Checkout
-        uses: actions/checkout@v2      
-        
+        uses: actions/checkout@v3      
+        with:
+          path: 'project'
+          
       - name: Cache Builer Image
         id: cache-builder-image
         uses: actions/cache@v3
@@ -226,17 +221,17 @@ jobs:
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS
           path: builder.tar.gz
-          key: ${{ env.cache-version }}-${{ hashFiles('composer.lock', 'Dockerfile') }}
+          key: ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', 'project/Dockerfile') }}
           restore-keys: |
-            ${{ env.cache-version }}-${{ hashFiles('composer.lock', 'Dockerfile') }}
+            ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', 'project/Dockerfile') }}
 
       - name: check platform
         id: check-platform
         run: |
           ls -lha
-          if [[ -d "web/modules" ]]; then
+          if [[ -d "project/web/modules" ]]; then
             export APP_PLATFORM=drupal
-          elif [[ -f "public/wp-settings.php" ]]; then
+          elif [[ -f "project/public/wp-settings.php" ]]; then
             export APP_PLATFORM=wordpress
           else
             export APP_PLATFORM=symfony
@@ -253,7 +248,7 @@ jobs:
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             -t builder \
-            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile .
+            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile project
           docker save builder | gzip > builder.tar.gz
         
       - name: Build, tag, and push image to Amazon ECR
@@ -275,7 +270,7 @@ jobs:
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg BOOTSTRAP_DISABLED=1 \
-            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile .            
+            --file=.docker-build/${{ steps.check-platform.outputs.APP_PLATFORM }}/Dockerfile project            
 
 
       - name: Push to Amazon ECR
