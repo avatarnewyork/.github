@@ -206,6 +206,7 @@ jobs:
           repository: 'avatarnewyork/docker-build'
           path: '.docker-build'
           ref: master
+          token: ${{ secrets.ORG_PROJECT_TOKEN }} 
         
       - name: Checkout
         uses: actions/checkout@v2      
