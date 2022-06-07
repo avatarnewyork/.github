@@ -206,8 +206,15 @@ jobs:
           repository: 'avatarnewyork/docker-build'
           path: '.docker-build'
           ref: master
+          path: .docker-build
           token: ${{ secrets.ORG_PROJECT_TOKEN }} 
-        
+
+      - name: debug-checkout
+        id: debug-checkout
+        run: |
+          ls -lha
+          ls -lha .docker-build
+          
       - name: Checkout
         uses: actions/checkout@v2      
         
