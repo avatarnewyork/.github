@@ -46,11 +46,11 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          #ARM ec2-image-id: ami-0fe7404e4958da184
-          ec2-image-id: ami-0e0ec8bd6bb241301
-          ec2-instance-type: m5a.large
+          ec2-image-id: ami-04bf0125201ccf859
+          #ec2-image-id: ami-0e0ec8bd6bb241301
+          #ec2-instance-type: m5a.xlarge
           #ec2-instance-type: t4g.large
-          #ec2-instance-type: m6g.large          
+          ec2-instance-type: m6g.large          
           # TODO: replace with project associated
           subnet-id: subnet-0307996f9f68fab93
           security-group-id: sg-0b36639ac9fdbdde9
@@ -75,10 +75,10 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          #ARM ec2-image-id: ami-0fe7404e4958da184
-          ec2-image-id: ami-0e0ec8bd6bb241301
-          ec2-instance-type: t3a.small
-          #ec2-instance-type: t4g.large
+          ec2-image-id: ami-04bf0125201ccf859
+          #ec2-image-id: ami-0e0ec8bd6bb241301
+          #ec2-instance-type: t3a.small
+          ec2-instance-type: t4g.small
           #ec2-instance-type: m6g.large
           # TODO: replace with project associated
           subnet-id: subnet-0307996f9f68fab93
@@ -532,11 +532,11 @@ jobs:
   #stage only          
   test-run:
     #runs-on: ubuntu-latest
-    runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
+    runs-on: ${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner              
     needs:
       - test-service-deploy
       - load-secrets
-      - start-runner1      
+      - start-runner2      
     if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
@@ -596,9 +596,9 @@ jobs:
           
   #stage only
   tear-down:
-    runs-on: ${{ needs.start-runner2.outputs.label }}
+    runs-on: ${{ needs.start-runner1.outputs.label }}
     needs:
-      - start-runner2
+      - start-runner1
       - load-secrets
       - test-run      
     if: |
@@ -636,17 +636,22 @@ jobs:
 
   deployment:
     #runs-on: ubuntu-latest
-    runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
+    runs-on: ${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner              
     needs:
+      - sec-check
+      - load-test-database
       - load-secrets
       - test-run
       - build
-      - start-runner1      
+      - start-runner2
+      - start-runner1
     if: |
       always() && 
-      (needs.load-test-database.result == 'success' || needs.load-test-database.result == 'skipped') && 
       (needs.test-service-deploy.result == 'success' || needs.test-service-deploy.result == 'skipped') &&
       (needs.test-run.result == 'success' || needs.test-run.result == 'skipped') &&
+      (needs.load-test-database.result == 'success' || needs.load-test-database.result == 'skipped') &&      
+      (needs.start-runner2.result == 'success' || needs.start-runner2.result == 'skipped') &&      
+      (needs.start-runner1.result == 'success' || needs.start-runner1.result == 'skipped') &&            
       (needs.sec-check.result == 'success') &&
       (needs.build.result == 'success') 
     steps:
@@ -723,7 +728,7 @@ jobs:
     name: Stop self-hosted EC2 runner 1
     needs:
       - start-runner1 # required to get output from the start-runner job
-      - deployment # required to wait when the main job is done
+      - tear-down # required to wait when the main job is done
     runs-on: ubuntu-latest
     if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
     steps:
@@ -745,7 +750,7 @@ jobs:
     name: Stop self-hosted EC2 runner 2
     needs:
       - start-runner2 # required to get output from the start-runner job
-      - tear-down # required to wait when the main job is done
+      - deployment # required to wait when the main job is done
     runs-on: ubuntu-latest
     if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
     steps:
