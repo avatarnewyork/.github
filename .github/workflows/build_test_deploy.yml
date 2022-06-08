@@ -287,9 +287,9 @@ jobs:
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS
           path: builder.tar.gz
-          key: ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', 'project/Dockerfile') }}
+          key: ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
           restore-keys: |
-            ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', 'project/Dockerfile') }}
+            ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
 
       - name: copy platform specific build files
         id: copy-platform-build-files
