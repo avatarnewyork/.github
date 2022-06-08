@@ -46,8 +46,9 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          ec2-image-id: ami-085fab8a9cfcaadef
+          ec2-image-id: ami-0e0ec8bd6bb241301
           ec2-instance-type: t3.xlarge
+          # TODO: replace with project associated
           subnet-id: subnet-0307996f9f68fab93
           security-group-id: sg-0b36639ac9fdbdde9
           #iam-role-name: my-role-name # optional, requires additional permissions
