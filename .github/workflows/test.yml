@@ -1,5 +1,5 @@
 name: do-the-job
-on: pull-request
+on: pull_request
 
 jobs:
   start-runner:
