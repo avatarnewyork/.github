@@ -48,8 +48,9 @@ jobs:
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
           #ec2-image-id: ami-04bf0125201ccf859
           ec2-image-id: ami-0e0ec8bd6bb241301
-          #ec2-instance-type: m5a.xlarge
-          ec2-instance-type: t4g.large
+          ec2-instance-type: t3a.large
+          #ec2-instance-type: m5a.large
+          #ec2-instance-type: t4g.large
           #ec2-instance-type: m6g.large          
           # TODO: replace with project associated
           subnet-id: subnet-0307996f9f68fab93
