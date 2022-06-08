@@ -27,68 +27,8 @@ on:
 # SEC_CHECK_DISABLED
 
 jobs:
-  start-runner1:
-    name: Start self-hosted EC2 runner 1
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION_STAGE }}
-      - name: Start EC2 runner
-        id: start-ec2-runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          #ec2-image-id: ami-04bf0125201ccf859
-          ec2-image-id: ami-0e0ec8bd6bb241301
-          ec2-instance-type: t3a.large
-          #ec2-instance-type: m5a.large
-          #ec2-instance-type: t4g.large
-          #ec2-instance-type: m6g.large          
-          # TODO: replace with project associated
-          subnet-id: subnet-0307996f9f68fab93
-          security-group-id: sg-0b36639ac9fdbdde9
-          #iam-role-name: my-role-name # optional, requires additional permissions
-
-  start-runner2:
-    name: Start self-hosted EC2 runner 2
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION_STAGE }}
-      - name: Start EC2 runner
-        id: start-ec2-runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          #ec2-image-id: ami-04bf0125201ccf859
-          ec2-image-id: ami-0e0ec8bd6bb241301
-          ec2-instance-type: t3a.small
-          #ec2-instance-type: t4g.small
-          #ec2-instance-type: m6g.large
-          # TODO: replace with project associated
-          subnet-id: subnet-0307996f9f68fab93
-          security-group-id: sg-0b36639ac9fdbdde9
-          #iam-role-name: my-role-name # optional, requires additional permissions
-          
   set-environment-params:
-    needs: start-runner1
-    runs-on: ${{ needs.start-runner1.outputs.label }} 
+    runs-on: ubuntu-latest
     outputs:
       environment_name: ${{ steps.set-envs.outputs.ENVIRONMENT_NAME }}
       environment_short_name: ${{ steps.set-envs.outputs.ENVIRONMENT_SHORT_NAME }}      
@@ -123,6 +63,45 @@ jobs:
           AWS_REGION_STAGE: ${{ secrets.AWS_REGION_STAGE }}
           AWS_REGION_PROD: ${{ secrets.AWS_REGION_PROD }}
           AWS_REGION_PROD_EU: ${{ secrets.AWS_REGION_PROD_EU }}
+
+  load-secrets:
+    needs:
+      - set-environment-params
+    outputs:
+      secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}    
+    runs-on: ubuntu-latest
+    steps:
+      - name: decode vars
+        id: decode-vars
+        run: |
+          echo "::set-output name=SECRETS_NAME::$(echo ${{ needs.set-environment-params.outputs.ecs_service_name }} | base64 -d | gunzip)"
+          
+          echo "::set-output name=AWS_REGION::$(echo ${{ needs.set-environment-params.outputs.aws_region }} | base64 -d | gunzip)"          
+          
+      - name: Store ENV from AWS SecretManager
+        uses: say8425/aws-secrets-manager-actions@v2
+        with:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ steps.decode-vars.outputs.aws_region }}
+          SECRET_NAME: ${{ steps.decode-vars.outputs.SECRETS_NAME }}
+          OUTPUT_PATH: '.env'
+          
+      - name: set envs
+        id: enc-sec
+        run: |
+          export SECRETS_ENC=`cat .env | gzip | base64 -w0`
+          echo "::set-output name=SECRETS_ENC::$SECRETS_ENC"
+
+      - name: notify load secrets failed
+        uses: someimportantcompany/github-actions-slack-message@v1
+        id: slack-fail-load-secrets
+        if: failure()
+        with:
+          channel: ${{ secrets.SLACK_CHANNEL }}
+          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
+          text: "load secrets failed :thumbsdown:"
+          color: failure
           
   notify:
     needs: start-runner2
@@ -137,6 +116,82 @@ jobs:
           text: "starting build"
           color: gray
 
+  start-runner1:
+    name: Start self-hosted EC2 runner 1
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: decode secrets
+        id: decode-secrets
+        run: |
+          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          mask-aws-account-id: false
+          
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          #ec2-image-id: ami-04bf0125201ccf859
+          ec2-image-id: ami-0e0ec8bd6bb241301
+          ec2-instance-type: t3a.large
+          #ec2-instance-type: m5a.large
+          #ec2-instance-type: t4g.large
+          #ec2-instance-type: m6g.large          
+          # TODO: replace with project associated
+          subnet-id: subnet-0307996f9f68fab93
+          security-group-id: sg-0b36639ac9fdbdde9
+          #iam-role-name: my-role-name # optional, requires additional permissions
+
+  start-runner2:
+    name: Start self-hosted EC2 runner 2
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: decode secrets
+        id: decode-secrets
+        run: |
+          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          mask-aws-account-id: false
+          
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          #ec2-image-id: ami-04bf0125201ccf859
+          ec2-image-id: ami-0e0ec8bd6bb241301
+          ec2-instance-type: t3a.small
+          #ec2-instance-type: t4g.small
+          #ec2-instance-type: m6g.large
+          # TODO: replace with project associated
+          subnet-id: subnet-0307996f9f68fab93
+          security-group-id: sg-0b36639ac9fdbdde9
+          #iam-role-name: my-role-name # optional, requires additional permissions
+          
+          
   sec-check:
     needs:
       - start-runner2
@@ -200,45 +255,6 @@ jobs:
           color: failure
       
     
-  load-secrets:
-    needs:
-      - set-environment-params
-      - start-runner1
-    outputs:
-      secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}    
-    runs-on: ${{ needs.start-runner1.outputs.label }}
-    steps:
-      - name: decode vars
-        id: decode-vars
-        run: |
-          echo "::set-output name=SECRETS_NAME::$(echo ${{ needs.set-environment-params.outputs.ecs_service_name }} | base64 -d | gunzip)"
-          
-          echo "::set-output name=AWS_REGION::$(echo ${{ needs.set-environment-params.outputs.aws_region }} | base64 -d | gunzip)"          
-          
-      - name: Store ENV from AWS SecretManager
-        uses: say8425/aws-secrets-manager-actions@v2
-        with:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ steps.decode-vars.outputs.aws_region }}
-          SECRET_NAME: ${{ steps.decode-vars.outputs.SECRETS_NAME }}
-          OUTPUT_PATH: '.env'
-          
-      - name: set envs
-        id: enc-sec
-        run: |
-          export SECRETS_ENC=`cat .env | gzip | base64 -w0`
-          echo "::set-output name=SECRETS_ENC::$SECRETS_ENC"
-
-      - name: notify load secrets failed
-        uses: someimportantcompany/github-actions-slack-message@v1
-        id: slack-fail-load-secrets
-        if: failure()
-        with:
-          channel: ${{ secrets.SLACK_CHANNEL }}
-          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
-          text: "load secrets failed :thumbsdown:"
-          color: failure
           
   build:
     #runs-on: ubuntu-latest
