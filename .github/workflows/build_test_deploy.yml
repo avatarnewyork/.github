@@ -243,7 +243,6 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner          
     needs:
-      - sec-check
       - load-secrets
       - start-runner1
     steps:
@@ -378,7 +377,6 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner          
     needs:
-      - sec-check
       - load-secrets
       - start-runner2      
     if: github.ref == 'refs/heads/stage'
@@ -464,6 +462,7 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
     needs:
+      - sec-check      
       - load-secrets
       - build
       - start-runner1      
