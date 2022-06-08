@@ -338,6 +338,7 @@ jobs:
     needs:
       - sec-check
       - load-secrets
+      - start-runner
     if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
@@ -424,6 +425,7 @@ jobs:
       - load-secrets
       - load-test-database
       - build
+      - start-runner      
     if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
@@ -494,6 +496,7 @@ jobs:
     needs:
       - test-service-deploy
       - load-secrets
+      - start-runner      
     if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
@@ -597,6 +600,7 @@ jobs:
       - load-secrets
       - test-run
       - build
+      - start-runner      
     if: |
       always() && 
       (needs.load-test-database.result == 'success' || needs.load-test-database.result == 'skipped') && 
