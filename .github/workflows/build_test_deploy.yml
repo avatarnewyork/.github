@@ -46,11 +46,11 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          ec2-image-id: ami-0fe7404e4958da184
-          #ec2-image-id: ami-0e0ec8bd6bb241301
-          #ec2-instance-type: t3.xlarge
+          #ARM ec2-image-id: ami-0fe7404e4958da184
+          ec2-image-id: ami-0e0ec8bd6bb241301
+          ec2-instance-type: t3.large
           #ec2-instance-type: t4g.large
-          ec2-instance-type: m6g.large          
+          #ec2-instance-type: m6g.large          
           # TODO: replace with project associated
           subnet-id: subnet-0307996f9f68fab93
           security-group-id: sg-0b36639ac9fdbdde9
@@ -75,11 +75,11 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          ec2-image-id: ami-0fe7404e4958da184
-          #ec2-image-id: ami-0e0ec8bd6bb241301
-          #ec2-instance-type: t3.xlarge
+          #ARM ec2-image-id: ami-0fe7404e4958da184
+          ec2-image-id: ami-0e0ec8bd6bb241301
+          ec2-instance-type: t3.large
           #ec2-instance-type: t4g.large
-          ec2-instance-type: m6g.large
+          #ec2-instance-type: m6g.large
           # TODO: replace with project associated
           subnet-id: subnet-0307996f9f68fab93
           security-group-id: sg-0b36639ac9fdbdde9
