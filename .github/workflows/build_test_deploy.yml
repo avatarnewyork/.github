@@ -36,6 +36,15 @@ jobs:
       ecs_service_instance_name: ${{ steps.set-envs.outputs.ECS_SERVICE_INSTANCE_NAME }}
       ecs_service_name: ${{ steps.set-envs.outputs.ECS_SERVICE_NAME }}      
     steps:
+      - name: notify start
+        uses: someimportantcompany/github-actions-slack-message@v1
+        id: slack-notify
+        with:
+          channel: ${{ secrets.SLACK_CHANNEL }}
+          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
+          text: "starting build"
+          color: gray
+      
       - name: Get Environment Name
         id: set-envs
         run: |          
@@ -103,19 +112,6 @@ jobs:
           text: "load secrets failed :thumbsdown:"
           color: failure
           
-  notify:
-    needs: start-runner2
-    runs-on: ${{ needs.start-runner2.outputs.label }} 
-    steps:    
-      - name: notify start
-        uses: someimportantcompany/github-actions-slack-message@v1
-        id: slack-notify
-        with:
-          channel: ${{ secrets.SLACK_CHANNEL }}
-          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
-          text: "starting build"
-          color: gray
-
   start-runner1:
     name: Start self-hosted EC2 runner 1
     runs-on: ubuntu-latest
