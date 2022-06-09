@@ -142,7 +142,7 @@ jobs:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
           #ec2-image-id: ami-04bf0125201ccf859
-          ec2-image-id: ami-0e0ec8bd6bb241301
+          ec2-image-id: ami-0340459e89378bc22
           ec2-instance-type: t3a.large
           #ec2-instance-type: m5a.large
           #ec2-instance-type: t4g.large
@@ -189,7 +189,7 @@ jobs:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
           #ec2-image-id: ami-04bf0125201ccf859
-          ec2-image-id: ami-0e0ec8bd6bb241301
+          ec2-image-id: ami-0340459e89378bc22
           ec2-instance-type: t3a.small
           #ec2-instance-type: t4g.small
           #ec2-instance-type: m6g.large
@@ -353,9 +353,9 @@ jobs:
         # TODO: DISABLE when done testing
         #continue-on-error: true
         run: |
-          set -x          
+          set -x
+          #  --build-arg BUILDKIT_INLINE_CACHE=1 
           docker build --compress --target=builder --cache-from=builder \
-            --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             -t builder \
             --file=project/.docker-build/Dockerfile project
@@ -372,14 +372,14 @@ jobs:
             docker load < builder.tar.gz;
             echo "loading builder.tar.gz"
           fi
-          
+
+          # --build-arg BOOTSTRAP_DISABLED=1 
           docker build --target=app --compress --cache-from=builder \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:test \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
-            --build-arg BOOTSTRAP_DISABLED=1 \
             --file=project/.docker-build/Dockerfile project            
 
 
