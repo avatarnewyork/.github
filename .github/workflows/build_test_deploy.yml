@@ -133,7 +133,7 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
-          mask-aws-account-id: false
+          mask-aws-account-id: false          
           
       - name: Start EC2 runner
         id: start-ec2-runner
@@ -148,9 +148,16 @@ jobs:
           #ec2-instance-type: t4g.large
           #ec2-instance-type: m6g.large          
           # TODO: replace with project associated
-          subnet-id: subnet-0307996f9f68fab93
-          security-group-id: sg-0b36639ac9fdbdde9
+          #subnet-id: subnet-0307996f9f68fab93
+          subnet-id: ${{ env.PublicSubnetOne }}
+          security-group-id: ${{ env.GithubRunnerSecurityGroup }}
           #iam-role-name: my-role-name # optional, requires additional permissions
+          aws-resource-tags: > # optional, requires additional permissions
+            [
+              {"Key": "client", "Value": "${{ env.CLIENT_NAME }}"},
+              {"Key": "environment", "Value": "${{ env.ENVIRONMENT_NAME }}"}
+            ]
+          
 
   start-runner2:
     name: Start self-hosted EC2 runner 2
@@ -187,9 +194,16 @@ jobs:
           #ec2-instance-type: t4g.small
           #ec2-instance-type: m6g.large
           # TODO: replace with project associated
-          subnet-id: subnet-0307996f9f68fab93
-          security-group-id: sg-0b36639ac9fdbdde9
+          #subnet-id: subnet-0307996f9f68fab93
+          #security-group-id: sg-0b36639ac9fdbdde9
+          subnet-id: ${{ env.PublicSubnetOne }}
+          security-group-id: ${{ env.GithubRunnerSecurityGroup }}          
           #iam-role-name: my-role-name # optional, requires additional permissions
+          aws-resource-tags: > # optional, requires additional permissions
+            [
+              {"Key": "client", "Value": "${{ env.CLIENT_NAME }}"},
+              {"Key": "environment", "Value": "${{ env.ENVIRONMENT_NAME }}"}
+            ]
           
           
   sec-check:
