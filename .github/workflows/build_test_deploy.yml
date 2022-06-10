@@ -698,14 +698,23 @@ jobs:
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           mask-aws-account-id: false
 
-      - name: Depoy Image to Service
-        uses: donaldpiret/ecs-deploy@master
-        with:
-          cluster: ${{ env.ECS_CLUSTER }}
-          target: ${{ env.CLIENT_NAME }}
-          image: ${{ env.CLIENT_NAME }} "${{ env.ECR_REPO_URI }}:${GITHUB_SHA}"
-          timeout: 900 #15mins
+      #- name: Depoy Image to Service
+      #  uses: donaldpiret/ecs-deploy@master
+      #  with:
+      #    cluster: ${{ env.ECS_CLUSTER }}
+      #    target: ${{ env.CLIENT_NAME }}
+      #    image: ${{ env.CLIENT_NAME }} "${{ env.ECR_REPO_URI }}:${GITHUB_SHA}"
+      #    timeout: 900 #15mins
 
+      - name: Deploy image on ECS (~3m)
+        run: |            
+          export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }} --force-new-deployment | jq -rc '.service.taskDefinition'`
+
+      - name: wait for service to become stable
+        run: |
+          aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}
+
+          
       - name: Run Bootstrap
         run: |
           set -x
