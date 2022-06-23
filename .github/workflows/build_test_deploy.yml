@@ -362,7 +362,7 @@ jobs:
           #  --build-arg BUILDKIT_INLINE_CACHE=1 
           docker build --compress --target=builder \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
-            --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \            
+            --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             -t builder \
             --file=project/.docker-build/Dockerfile project
           docker save builder | gzip > builder.tar.gz
