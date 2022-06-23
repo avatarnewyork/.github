@@ -68,7 +68,8 @@ jobs:
           fi
           echo "::set-output name=AWS_REGION::$AWS_REGION"          
           echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
-          echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"                      
+          echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"
+          echo "::set-output name=AMI_ID::$AMI_ID"                                
         env:
           ECS_SERVICE_INSTANCE_NAME_STAGE: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_STAGE }}
           ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}          
