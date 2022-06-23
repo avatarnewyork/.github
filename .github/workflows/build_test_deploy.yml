@@ -60,7 +60,7 @@ jobs:
             echo "::set-output name=ENVIRONMENT_NAME::production"
             echo "::set-output name=ENVIRONMENT_SHORT_NAME::prod"
             export AWS_REGION=`echo ${{ env.AWS_REGION_PROD }} | gzip | base64 -w0`                       
-            export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }}-stage" | gzip | base64 -w0`
+            export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }}-production" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }} | gzip | base64 -w0`                        
           fi
           echo "::set-output name=AWS_REGION::$AWS_REGION"          
