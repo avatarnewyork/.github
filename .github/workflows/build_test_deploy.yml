@@ -34,7 +34,8 @@ jobs:
       environment_short_name: ${{ steps.set-envs.outputs.ENVIRONMENT_SHORT_NAME }}      
       aws_region: ${{ steps.set-envs.outputs.AWS_REGION }}
       ecs_service_instance_name: ${{ steps.set-envs.outputs.ECS_SERVICE_INSTANCE_NAME }}
-      ecs_service_name: ${{ steps.set-envs.outputs.ECS_SERVICE_NAME }}      
+      ecs_service_name: ${{ steps.set-envs.outputs.ECS_SERVICE_NAME }}
+      ami_id: ${{ steps.set-envs.outputs.AMI_ID }}            
     steps:
       - name: notify start
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -54,14 +55,16 @@ jobs:
             echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"            
             export AWS_REGION=`echo ${{ env.AWS_REGION_STAGE }} | gzip | base64 -w0`
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }}-stage" | gzip | base64 -w0`
-            export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }} | gzip | base64 -w0`                        
+            export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }} | gzip | base64 -w0`
+            export AMI_ID=`echo ${{ env.AWS_AMI_ID_STAGE }} | gzip | base64 -w0`
           else
             echo "ENVIRONMENT_NAME=production"          
             echo "::set-output name=ENVIRONMENT_NAME::production"
             echo "::set-output name=ENVIRONMENT_SHORT_NAME::prod"
             export AWS_REGION=`echo ${{ env.AWS_REGION_PROD }} | gzip | base64 -w0`                       
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }}-prod" | gzip | base64 -w0`
-            export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }} | gzip | base64 -w0`                        
+            export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }} | gzip | base64 -w0`
+            export AMI_ID=`echo ${{ env.AWS_AMI_ID_PROD }} | gzip | base64 -w0`            
           fi
           echo "::set-output name=AWS_REGION::$AWS_REGION"          
           echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
@@ -72,6 +75,8 @@ jobs:
           AWS_REGION_STAGE: ${{ secrets.AWS_REGION_STAGE }}
           AWS_REGION_PROD: ${{ secrets.AWS_REGION_PROD }}
           AWS_REGION_PROD_EU: ${{ secrets.AWS_REGION_PROD_EU }}
+          AWS_AMI_ID_STAGE: ${{ secrets.AWS_AMI_ID_STAGE }}
+          AWS_AMI_ID_PROD: ${{ secrets.AWS_AMI_ID_PROD }}          
 
   load-secrets:
     needs:
@@ -116,11 +121,17 @@ jobs:
     name: Start self-hosted EC2 runner 1
     runs-on: ubuntu-latest
     needs:
+      - set-environment-params
       - load-secrets
     outputs:
       label: ${{ steps.start-ec2-runner.outputs.label }}
       ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
     steps:
+      - name: decode-vars
+        id: decode-vars
+        run: |
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          
       - name: decode secrets
         id: decode-secrets
         run: |
@@ -141,7 +152,7 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          ec2-image-id: ami-0d008c2076972e8ba
+          ec2-image-id: steps.decode-vars.outputs.AMI_ID
           ec2-instance-type: t3a.large
           subnet-id: ${{ env.PublicSubnetOne }}
           security-group-id: ${{ env.GithubRunnerSecurityGroup }}
@@ -156,11 +167,17 @@ jobs:
     name: Start self-hosted EC2 runner 2
     runs-on: ubuntu-latest
     needs:
+      - set-environment-params      
       - load-secrets    
     outputs:
       label: ${{ steps.start-ec2-runner.outputs.label }}
       ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
     steps:
+      - name: decode-vars
+        id: decode-vars
+        run: |
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+                
       - name: decode secrets
         id: decode-secrets
         run: |
@@ -181,7 +198,8 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
-          ec2-image-id: ami-0d008c2076972e8ba
+          #ec2-image-id: ami-0d008c2076972e8ba
+          ec2-image-id: steps.decode-vars.outputs.AMI_ID
           ec2-instance-type: t3a.small
           subnet-id: ${{ env.PublicSubnetOne }}
           security-group-id: ${{ env.GithubRunnerSecurityGroup }}          
