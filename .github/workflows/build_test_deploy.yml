@@ -520,19 +520,41 @@ jobs:
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           mask-aws-account-id: false
             
-      - name: spin up test service with test image (~3m)
-        run: |            
+      #- name: spin up test service with test image (~3m)
+      #  run: |            
           #export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment | jq -rc '.service.taskDefinition'`
 
-      - name: deploy test service
-        id: deploy-test-service
-        uses: donaldpiret/ecs-deploy@master
-        with:
-          cluster: ${{ env.ECS_CLUSTER }}
-          target: ${{ env.CLIENT_NAME }}-test
-          tag: ${{ github.sha }}
-          timeout: 900 #15mins
+      #- name: deploy test service
+      #  id: deploy-test-service
+      #  uses: donaldpiret/ecs-deploy@master
+      #  with:
+      #    cluster: ${{ env.ECS_CLUSTER }}
+      #    target: ${{ env.CLIENT_NAME }}-test
+      #    tag: ${{ github.sha }}
+      #    timeout: 900 #15mins
 
+      - name: Get Task Definition
+        id: get-task-def
+        run: |
+          export ECS_SERVICE_TASK_DEF_ARN=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}-test | jq -rc '.services[0].taskDefinition'`
+          aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition $ECS_SERVICE_TASK_DEF_ARN > taskdef.json
+
+      - name: Render Amazon ECS task definition
+        id: render-web-container
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: taskdef.json
+          container-name: ${{ env.CLIENT_NAME }}-test
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}           
+
+      - name: Deploy to Amazon ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-web-container.outputs.task-definition }}
+          service: ${{ env.CLIENT_NAME }}-test
+          cluster: ${{ env.ECS_CLUSTER }}          
+          
+          
       - name: wait for service to become stable
         run: |
           aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}-test
@@ -725,15 +747,37 @@ jobs:
       #  run: |            
       #    export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }} --force-new-deployment | jq -rc '.service.taskDefinition'`
 
-      - name: Deploy image on ECS (~3m)
-        id: deploy-service
-        uses: donaldpiret/ecs-deploy@master
+      #- name: Deploy image on ECS (~3m)
+      #  id: deploy-service
+      #  uses: donaldpiret/ecs-deploy@master
+      #  with:
+      #    cluster: ${{ env.ECS_CLUSTER }}
+      #    target: ${{ env.CLIENT_NAME }}-test
+      #    tag: ${{ github.sha }}
+      #    timeout: 900 #15mins
+
+      - name: Get Task Definition
+        id: get-task-def
+        run: |
+          export ECS_SERVICE_TASK_DEF_ARN=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }} | jq -rc '.services[0].taskDefinition'`
+          aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition $ECS_SERVICE_TASK_DEF_ARN > taskdef.json
+
+      - name: Render Amazon ECS task definition
+        id: render-web-container
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
+          task-definition: taskdef.json
+          container-name: ${{ env.CLIENT_NAME }}
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}           
+
+      - name: Deploy to Amazon ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-web-container.outputs.task-definition }}
+          service: ${{ env.CLIENT_NAME }}
           cluster: ${{ env.ECS_CLUSTER }}
-          target: ${{ env.CLIENT_NAME }}-test
-          tag: ${{ github.sha }}
-          timeout: 900 #15mins
-          
+
+        
       - name: wait for service to become stable
         run: |
           aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}
