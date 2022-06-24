@@ -526,7 +526,7 @@ jobs:
 
       - name: deploy test service
         id: deploy-test-service
-        uses: donaldpiret/ecs-deploy@v0.3.0
+        uses: donaldpiret/ecs-deploy@master
         with:
           cluster: ${{ env.ECS_CLUSTER }}
           target: ${{ env.CLIENT_NAME }}-test
@@ -727,7 +727,7 @@ jobs:
 
       - name: Deploy image on ECS (~3m)
         id: deploy-service
-        uses: donaldpiret/ecs-deploy@v0.3.0
+        uses: donaldpiret/ecs-deploy@master
         with:
           cluster: ${{ env.ECS_CLUSTER }}
           target: ${{ env.CLIENT_NAME }}-test
