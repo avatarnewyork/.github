@@ -522,7 +522,16 @@ jobs:
             
       - name: spin up test service with test image (~3m)
         run: |            
-          export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment | jq -rc '.service.taskDefinition'`
+          #export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment | jq -rc '.service.taskDefinition'`
+
+      - name: deploy test service
+        id: deploy-test-service
+        uses: donaldpiret/ecs-deploy@v0.3.0
+        with:
+          cluster: ${{ env.ECS_CLUSTER }}
+          target: ${{ env.CLIENT_NAME }}-test
+          tag: ${{ github.sha }}
+          timeout: 900 #15mins
 
       - name: wait for service to become stable
         run: |
@@ -712,10 +721,19 @@ jobs:
       #    image: ${{ env.CLIENT_NAME }} "${{ env.ECR_REPO_URI }}:${GITHUB_SHA}"
       #    timeout: 900 #15mins
 
-      - name: Deploy image on ECS (~3m)
-        run: |            
-          export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }} --force-new-deployment | jq -rc '.service.taskDefinition'`
+      #- name: Deploy image on ECS (~3m)
+      #  run: |            
+      #    export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }} --force-new-deployment | jq -rc '.service.taskDefinition'`
 
+      - name: Deploy image on ECS (~3m)
+        id: deploy-service
+        uses: donaldpiret/ecs-deploy@v0.3.0
+        with:
+          cluster: ${{ env.ECS_CLUSTER }}
+          target: ${{ env.CLIENT_NAME }}-test
+          tag: ${{ github.sha }}
+          timeout: 900 #15mins
+          
       - name: wait for service to become stable
         run: |
           aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}
