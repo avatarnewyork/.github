@@ -555,8 +555,9 @@ jobs:
       #    wait-for-service-stability: true
 
       - name: spin up test service with test image (~3m)
-        run: |            
-          export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment --task-definition=${{ steps.render-web-container.outputs.task-definition }} | jq -rc '.service.taskDefinition'`
+        run: |
+          export ECS_SERVICE_TASK_DEF_ARN=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition | jq -rc ".taskDefinitionArn"`
+          aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment --task-definition=$ECS_SERVICE_TASK_DEF_ARN > ecs_service_update.json
           
       - name: wait for service to become stable
         run: |
