@@ -543,13 +543,13 @@ jobs:
           aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition > taskdef.json
           #echo "::set-output name=IMAGE_REV::${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}"
 
-      - name: Render Amazon ECS task definition
-        id: render-web-container
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: taskdef.json
-          container-name: ${{ env.CLIENT_NAME }}-test
-          image: ${{ needs.build.outputs.image_uri }}
+      #- name: Render Amazon ECS task definition
+      #  id: render-web-container
+      #  uses: aws-actions/amazon-ecs-render-task-definition@v1
+      #  with:
+      #    task-definition: taskdef.json
+      #    container-name: ${{ env.CLIENT_NAME }}-test
+      #    image: ${{ needs.build.outputs.image_uri }}
 
       #- name: Deploy to Amazon ECS service
       #  uses: aws-actions/amazon-ecs-deploy-task-definition@v1
@@ -559,14 +559,35 @@ jobs:
       #    cluster: ${{ env.ECS_CLUSTER }}
       #    wait-for-service-stability: true
 
-      - name: spin up test service with test image (~3m)
-        run: |
-          export ECS_SERVICE_TASK_DEF_ARN=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition | jq -rc ".taskDefinitionArn"`
-          aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment --task-definition=$ECS_SERVICE_TASK_DEF_ARN > ecs_service_update.json
+      - name: Retrieve task def
+        uses: fabiano-amaral/ecs-task-def-replacements@main
+        id: task
+        with:
+          cluster-name: "${{ env.ECS_CLUSTER }}"
+          service-name: "${{ env.CLIENT_NAME }}-test"
+          replacements: |
+            {
+              "containerDefinitions": [{
+                "image": "${{ needs.build.outputs.image_uri }}"
+              }]
+            }
+
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task.outputs.taskDef }}
+          service: "${{ env.CLIENT_NAME }}-test"
+          cluster: "${{ env.ECS_CLUSTER }}"
+          wait-for-service-stability: true
           
-      - name: wait for service to become stable
-        run: |
-          aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}-test
+      #- name: spin up test service with test image (~3m)
+      #  run: |
+      #    export ECS_SERVICE_TASK_DEF_ARN=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition | jq -rc ".taskDefinitionArn"`
+      #    aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment --task-definition=$ECS_SERVICE_TASK_DEF_ARN > ecs_service_update.json
+          
+      #- name: wait for service to become stable
+      #  run: |
+      #    aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}-test
 
       - name: Run Bootstrap
         run: |
