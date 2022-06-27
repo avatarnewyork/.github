@@ -533,26 +533,17 @@ jobs:
       #    tag: ${{ github.sha }}
       #    timeout: 900 #15mins
 
-      - name: Checkout
-        uses: actions/checkout@v3      
-        with:
-          path: 'project'
-
       - name: Get Task Definition
         id: get-task-def
         run: |
-          #export ECS_SERVICE_TASK_DEF_ARN=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}-test | jq -rc '.services[0].taskDefinition'`
-          #echo "Task Def: $ECS_SERVICE_TASK_DEF_ARN"
-          #aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition $ECS_SERVICE_TASK_DEF_ARN > "${{ env.GITHUB_WORKSPACE}}/taskdef.json"
-          aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition ${{ env.CLIENT_NAME }}-test --query taskDefinition > taskdef.json
+          aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition > taskdef.json
           ls -lha 
-          cat taskdef.json"
+          cat taskdef.json
 
       - name: Render Amazon ECS task definition
         id: render-web-container
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          #task-definition: "${{ env.GITHUB_WORKSPACE}}/taskdef.json"
           task-definition: taskdef.json
           container-name: ${{ env.CLIENT_NAME }}-test
           image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}           
