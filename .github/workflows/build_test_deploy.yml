@@ -276,6 +276,8 @@ jobs:
     
           
   build:
+    outputs:
+      image_uri: ${{ steps.push-ecr.outputs.IMAGE_URI }}    
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner          
     needs:
@@ -390,6 +392,7 @@ jobs:
 
 
       - name: Push to Amazon ECR
+        id: push-ecr        
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ env.ECR_REPO_NAME }}
@@ -398,7 +401,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:test          
-
+          echo "::set-output name=IMAGE_URI::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          
       - name: notify build failed
         uses: someimportantcompany/github-actions-slack-message@v1
         id: slack-fail-build
@@ -537,7 +541,7 @@ jobs:
         id: get-task-def
         run: |
           aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition > taskdef.json
-          echo "::set-output name=IMAGE_REV::${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}"
+          #echo "::set-output name=IMAGE_REV::${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}"
 
       - name: Render Amazon ECS task definition
         id: render-web-container
@@ -545,7 +549,7 @@ jobs:
         with:
           task-definition: taskdef.json
           container-name: ${{ env.CLIENT_NAME }}-test
-          image: ${{ steps.get-task-def.outputs.IMAGE_REV }}
+          image: ${{ needs.build.outputs.image_uri }}
 
       #- name: Deploy to Amazon ECS service
       #  uses: aws-actions/amazon-ecs-deploy-task-definition@v1
