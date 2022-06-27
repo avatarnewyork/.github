@@ -537,8 +537,6 @@ jobs:
         id: get-task-def
         run: |
           aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition > taskdef.json
-          ls -lha 
-          cat taskdef.json
 
       - name: Render Amazon ECS task definition
         id: render-web-container
@@ -548,13 +546,17 @@ jobs:
           container-name: ${{ env.CLIENT_NAME }}-test
           image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}           
 
-      - name: Deploy to Amazon ECS service
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.render-web-container.outputs.task-definition }}
-          service: ${{ env.CLIENT_NAME }}-test
-          cluster: ${{ env.ECS_CLUSTER }}          
-          
+      #- name: Deploy to Amazon ECS service
+      #  uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      #  with:
+      #    task-definition: ${{ steps.render-web-container.outputs.task-definition }}
+      #    service: ${{ env.CLIENT_NAME }}-test
+      #    cluster: ${{ env.ECS_CLUSTER }}
+      #    wait-for-service-stability: true
+
+      - name: spin up test service with test image (~3m)
+        run: |            
+          export ECS_SERVICE_TASK_DEF_ARN=`aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment --task-definition=${{ steps.render-web-container.outputs.task-definition }} | jq -rc '.service.taskDefinition'`
           
       - name: wait for service to become stable
         run: |
