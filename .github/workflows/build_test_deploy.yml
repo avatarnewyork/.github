@@ -500,8 +500,8 @@ jobs:
           
   # stage only
   test-service-deploy:
-    #runs-on: ubuntu-latest
-    runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
+    runs-on: ubuntu-latest
+    #runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
     needs:
       - sec-check      
       - load-secrets
