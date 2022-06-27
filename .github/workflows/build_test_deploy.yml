@@ -546,10 +546,13 @@ jobs:
           #export TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }})
 
           # generate updated task def
-          echo $TASK_DEFINITION | jq '.containerDefinitions[0].image='\"${{ needs.build.outputs.image_uri }}\" > task-def.json
+          #echo $TASK_DEFINITION | jq '.containerDefinitions[0].image='\"${{ needs.build.outputs.image_uri }}\" > task-def.json
 
+          #TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$AWS_ECS_TASK_FAMILY")
+          echo "$TASK_DEFINITION" | jq --arg IMAGE "$ECR_IMAGE_TAG" '.taskDefinition | .containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)' > task-def.json
+          
           # register task def
-          export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinitionArn'`
+          export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
           echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN
           
           #echo "::set-output name=IMAGE_REV::${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}"
