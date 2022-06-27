@@ -537,6 +537,7 @@ jobs:
         id: get-task-def
         run: |
           aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition > taskdef.json
+          echo "::set-output name=IMAGE_REV::${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}"
 
       - name: Render Amazon ECS task definition
         id: render-web-container
@@ -544,7 +545,7 @@ jobs:
         with:
           task-definition: taskdef.json
           container-name: ${{ env.CLIENT_NAME }}-test
-          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY}}:${{ github.sha }}           
+          image: ${{ steps.get-task-def.outputs.IMAGE_REV }}
 
       #- name: Deploy to Amazon ECS service
       #  uses: aws-actions/amazon-ecs-deploy-task-definition@v1
