@@ -540,16 +540,16 @@ jobs:
       - name: Get Task Definition
         id: task-def
         run: |
-          export TASK_DEFINITION=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition`
+          #export TASK_DEFINITION=`aws ecs --region ${{ env.AWS_DEFAULT_REGION }} describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --query taskDefinition`
 
           # get task def
-          #export TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }})
+          export TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }})
 
           # generate updated task def
           #echo $TASK_DEFINITION | jq '.containerDefinitions[0].image='\"${{ needs.build.outputs.image_uri }}\" > task-def.json
 
           #TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$AWS_ECS_TASK_FAMILY")
-          echo "$TASK_DEFINITION" | jq --arg IMAGE "$ECR_IMAGE_TAG" '.taskDefinition | .containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)' > task-def.json
+          echo "$TASK_DEFINITION" | jq --arg IMAGE "$ECR_IMAGE_TAG" '.taskDefinition | .containerDefinitions[0].image = ${{ needs.build.outputs.image_uri }} | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)' > task-def.json
           
           # register task def
           export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
