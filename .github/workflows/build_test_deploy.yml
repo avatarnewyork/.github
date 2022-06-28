@@ -322,7 +322,7 @@ jobs:
         id: cache-builder-image
         uses: actions/cache@v3
         env:
-          cache-version: v4
+          cache-version: v5
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS
           path: builder.tar.gz
