@@ -152,7 +152,8 @@ jobs:
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
           ec2-image-id: ${{ steps.decode-vars.outputs.AMI_ID }}
           #ec2-instance-type: t3a.large
-          ec2-instance-type: c6a.xlarge
+          #ec2-instance-type: c6a.xlarge
+          ec2-instance-type: x2iedn.xlarge
           #ec2-instance-type: t3a.small
           subnet-id: ${{ env.PublicSubnetOne }}
           security-group-id: ${{ env.GithubRunnerSecurityGroup }}
@@ -213,7 +214,7 @@ jobs:
   sec-check:
     needs:
       - start-runner2
-    runs-on: self-hosted
+    runs-on: ${{ needs.start-runner2.outputs.label }}
     #["self-hosted", "${{ needs.start-runner2.outputs.label }}"]
     steps:
       - name: Checkout
@@ -322,7 +323,7 @@ jobs:
         id: cache-builder-image
         uses: actions/cache@v3
         env:
-          cache-version: v5
+          cache-version: v6
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS
           path: builder.tar.gz
@@ -418,7 +419,7 @@ jobs:
   # stage only
   load-test-database:    
     #runs-on: ubuntu-latest
-    runs-on: self-hosted
+    runs-on: ${{ needs.start-runner2.outputs.label }}
     #${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner          
     needs:
       - set-environment-params
@@ -654,47 +655,6 @@ jobs:
           text: "test-run failed :thumbsdown:"
           color: failure
           
-  #stage only
-  tear-down:
-    runs-on: ${{ needs.start-runner1.outputs.label }}
-    needs:
-      - start-runner1
-      - set-environment-params
-      #- load-secrets
-      - test-run      
-    if: |
-      always() &&
-      (needs.test-run.result == 'success') &&
-      github.ref == 'refs/heads/stage'
-    steps:
-      - name: decode secrets
-        id: decode-secrets
-        run: |
-          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
-          echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-          mask-aws-account-id: false
-            
-      - name: spin down test service (~5m)
-        run: |
-            aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 0
-
-      - name: notify tear-down
-        uses: someimportantcompany/github-actions-slack-message@v1
-        id: slack-fail-tear-down
-        if: failure()
-        with:
-          channel: ${{ secrets.SLACK_CHANNEL }}
-          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
-          text: "tear-down failed :thumbsdown:"
-          color: failure
-
   deployment:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner              
@@ -800,6 +760,49 @@ jobs:
           text: "deploy failed :thumbsdown:"
           color: failure
 
+
+  #stage only
+  tear-down:
+    runs-on: ${{ needs.start-runner1.outputs.label }}
+    needs:
+      - start-runner1
+      - set-environment-params
+      #- load-secrets
+      #- test-run
+      - test-service-deploy
+      - deployment
+    if: |
+      always() &&
+      (needs.test-service-deploy.result == 'success') &&
+      github.ref == 'refs/heads/stage'
+    steps:
+      - name: decode secrets
+        id: decode-secrets
+        run: |
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
+          echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          mask-aws-account-id: false
+            
+      - name: spin down test service (~5m)
+        run: |
+            aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 0
+
+      - name: notify tear-down
+        uses: someimportantcompany/github-actions-slack-message@v1
+        id: slack-fail-tear-down
+        if: failure()
+        with:
+          channel: ${{ secrets.SLACK_CHANNEL }}
+          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
+          text: "tear-down failed :thumbsdown:"
+          color: failure
           
   stop-runner1:
     name: Stop self-hosted EC2 runner 1
