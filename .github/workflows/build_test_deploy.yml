@@ -35,7 +35,8 @@ jobs:
       aws_region: ${{ steps.set-envs.outputs.AWS_REGION }}
       ecs_service_instance_name: ${{ steps.set-envs.outputs.ECS_SERVICE_INSTANCE_NAME }}
       ecs_service_name: ${{ steps.set-envs.outputs.ECS_SERVICE_NAME }}
-      ami_id: ${{ steps.set-envs.outputs.AMI_ID }}            
+      ami_id: ${{ steps.set-envs.outputs.AMI_ID }}
+      secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}          
     steps:
       - name: notify start
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -69,7 +70,7 @@ jobs:
           echo "::set-output name=AWS_REGION::$AWS_REGION"          
           echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
           echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"
-          echo "::set-output name=AMI_ID::$AMI_ID"                                
+          echo "::set-output name=AMI_ID::$AMI_ID"          
         env:
           ECS_SERVICE_INSTANCE_NAME_STAGE: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_STAGE }}
           ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}          
@@ -77,7 +78,40 @@ jobs:
           AWS_REGION_PROD: ${{ secrets.AWS_REGION_PROD }}
           AWS_REGION_PROD_EU: ${{ secrets.AWS_REGION_PROD_EU }}
           AWS_AMI_ID_STAGE: ${{ secrets.AWS_AMI_ID_STAGE }}
-          AWS_AMI_ID_PROD: ${{ secrets.AWS_AMI_ID_PROD }}          
+          AWS_AMI_ID_PROD: ${{ secrets.AWS_AMI_ID_PROD }}
+
+      - name: decode vars
+        id: decode-vars
+        run: |
+          echo "::set-output name=SECRETS_NAME::$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)"
+          
+          echo "::set-output name=AWS_REGION::$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)"          
+          
+      - name: Store ENV from AWS SecretManager
+        uses: say8425/aws-secrets-manager-actions@v2
+        with:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ steps.decode-vars.outputs.aws_region }}
+          SECRET_NAME: ${{ steps.decode-vars.outputs.SECRETS_NAME }}
+          OUTPUT_PATH: '.env'
+          
+      - name: set envs
+        id: enc-sec
+        run: |
+          export SECRETS_ENC=`cat .env | gzip | base64 -w0`
+          echo "::set-output name=SECRETS_ENC::$SECRETS_ENC"
+
+      - name: notify load secrets failed
+        uses: someimportantcompany/github-actions-slack-message@v1
+        id: slack-fail-load-secrets
+        if: failure()
+        with:
+          channel: ${{ secrets.SLACK_CHANNEL }}
+          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
+          text: "load secrets failed :thumbsdown:"
+          color: failure
+          
 
   load-secrets:
     needs:
@@ -117,13 +151,15 @@ jobs:
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "load secrets failed :thumbsdown:"
           color: failure
+
           
+  # https://github.com/machulav/ec2-github-runner
   start-runner1:
     name: Start self-hosted EC2 runner 1
     runs-on: ubuntu-latest
     needs:
       - set-environment-params
-      - load-secrets
+      #- load-secrets
     outputs:
       label: ${{ steps.start-ec2-runner.outputs.label }}
       ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
@@ -136,7 +172,7 @@ jobs:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
@@ -169,7 +205,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - set-environment-params      
-      - load-secrets    
+      #- load-secrets    
     outputs:
       label: ${{ steps.start-ec2-runner.outputs.label }}
       ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
@@ -182,7 +218,7 @@ jobs:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
           
       - name: Configure AWS Credentials
@@ -214,7 +250,7 @@ jobs:
   sec-check:
     needs:
       - start-runner2
-    runs-on: ${{ needs.start-runner2.outputs.label }} 
+    runs-on: ${{ needs.start-runner2.outputs.label }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2      
@@ -281,13 +317,13 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner          
     needs:
-      - load-secrets
+      #- load-secrets
       - start-runner1
     steps:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
           
       - name: Configure AWS Credentials
@@ -418,7 +454,8 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner          
     needs:
-      - load-secrets
+      - set-environment-params
+      #- load-secrets
       - start-runner2      
     if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
@@ -426,7 +463,7 @@ jobs:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
@@ -504,7 +541,8 @@ jobs:
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
     needs:
       - sec-check      
-      - load-secrets
+      #- load-secrets
+      - set-environment-params
       - build
       - start-runner1      
     if: github.ref == 'refs/heads/stage'
@@ -513,7 +551,7 @@ jobs:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
@@ -589,7 +627,8 @@ jobs:
     runs-on: ${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner              
     needs:
       - test-service-deploy
-      - load-secrets
+      - set-environment-params      
+      #- load-secrets
       - start-runner2      
     if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
@@ -597,7 +636,7 @@ jobs:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
       # TODO Required for Test Report?
@@ -653,7 +692,8 @@ jobs:
     runs-on: ${{ needs.start-runner1.outputs.label }}
     needs:
       - start-runner1
-      - load-secrets
+      - set-environment-params
+      #- load-secrets
       - test-run      
     if: |
       always() &&
@@ -663,7 +703,7 @@ jobs:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
@@ -694,7 +734,8 @@ jobs:
     needs:
       - sec-check
       - load-test-database
-      - load-secrets
+      - set-environment-params
+      #- load-secrets
       - test-run
       - build
       - start-runner2
@@ -710,7 +751,7 @@ jobs:
       - name: decode secrets
         id: decode-secrets
         run: |
-          export AWS_ENVS=$(echo ${{ needs.load-secrets.outputs.secrets_enc }} | base64 -d | gunzip)
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
