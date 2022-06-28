@@ -318,6 +318,7 @@ jobs:
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner          
     needs:
       #- load-secrets
+      - set-environment-params      
       - start-runner1
     steps:
       - name: decode secrets
