@@ -847,17 +847,31 @@ jobs:
   stop-runner1:
     name: Stop self-hosted EC2 runner 1
     needs:
+      - set-environment-params
       - start-runner1 # required to get output from the start-runner job
       - tear-down # required to wait when the main job is done
     runs-on: ubuntu-latest
     if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
     steps:
-      - name: Configure AWS credentials
+      - name: decode-vars
+        id: decode-vars
+        run: |
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          
+      - name: decode secrets
+        id: decode-secrets
+        run: |
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
+          echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION_STAGE }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          mask-aws-account-id: false
+          
       - name: Stop EC2 runner
         uses: machulav/ec2-github-runner@v2
         with:
@@ -869,17 +883,31 @@ jobs:
   stop-runner2:
     name: Stop self-hosted EC2 runner 2
     needs:
+      - set-environment-params
       - start-runner2 # required to get output from the start-runner job
       - deployment # required to wait when the main job is done
     runs-on: ubuntu-latest
     if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
     steps:
-      - name: Configure AWS credentials
+      - name: decode-vars
+        id: decode-vars
+        run: |
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          
+      - name: decode secrets
+        id: decode-secrets
+        run: |
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
+          echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION_STAGE }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          mask-aws-account-id: false
+          
       - name: Stop EC2 runner
         uses: machulav/ec2-github-runner@v2
         with:
