@@ -151,7 +151,7 @@ jobs:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
           ec2-image-id: ${{ steps.decode-vars.outputs.AMI_ID }}
-          ec2-instance-type: t3a.medium
+          ec2-instance-type: t3a.large
           #ec2-instance-type: c6a.xlarge
           #ec2-instance-type: x2iedn.xlarge
           #ec2-instance-type: t3a.small
