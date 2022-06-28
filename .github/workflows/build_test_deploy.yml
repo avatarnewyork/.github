@@ -152,7 +152,8 @@ jobs:
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
           ec2-image-id: ${{ steps.decode-vars.outputs.AMI_ID }}
           #ec2-instance-type: t3a.large
-          ec2-instance-type: t3a.small
+          ec2-instance-type: c7g.large
+          #ec2-instance-type: t3a.small
           subnet-id: ${{ env.PublicSubnetOne }}
           security-group-id: ${{ env.GithubRunnerSecurityGroup }}
           aws-resource-tags: > # optional, requires additional permissions
@@ -278,7 +279,7 @@ jobs:
     outputs:
       image_uri: ${{ steps.push-ecr.outputs.IMAGE_URI }}    
     #runs-on: ubuntu-latest
-    runs-on: self-hosted
+    runs-on: ${{ needs.start-runner1.outputs.label }}
     #["self-hosted", "${{ needs.start-runner1.outputs.label }}"]
     needs:
       #- load-secrets
