@@ -113,45 +113,6 @@ jobs:
           color: failure
           
 
-  load-secrets:
-    needs:
-      - set-environment-params
-    outputs:
-      secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}    
-    runs-on: ubuntu-latest
-    steps:
-      - name: decode vars
-        id: decode-vars
-        run: |
-          echo "::set-output name=SECRETS_NAME::$(echo ${{ needs.set-environment-params.outputs.ecs_service_name }} | base64 -d | gunzip)"
-          
-          echo "::set-output name=AWS_REGION::$(echo ${{ needs.set-environment-params.outputs.aws_region }} | base64 -d | gunzip)"          
-          
-      - name: Store ENV from AWS SecretManager
-        uses: say8425/aws-secrets-manager-actions@v2
-        with:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ steps.decode-vars.outputs.aws_region }}
-          SECRET_NAME: ${{ steps.decode-vars.outputs.SECRETS_NAME }}
-          OUTPUT_PATH: '.env'
-          
-      - name: set envs
-        id: enc-sec
-        run: |
-          export SECRETS_ENC=`cat .env | gzip | base64 -w0`
-          echo "::set-output name=SECRETS_ENC::$SECRETS_ENC"
-
-      - name: notify load secrets failed
-        uses: someimportantcompany/github-actions-slack-message@v1
-        id: slack-fail-load-secrets
-        if: failure()
-        with:
-          channel: ${{ secrets.SLACK_CHANNEL }}
-          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
-          text: "load secrets failed :thumbsdown:"
-          color: failure
-
           
   # https://github.com/machulav/ec2-github-runner
   start-runner1:
