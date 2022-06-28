@@ -151,9 +151,9 @@ jobs:
           mode: start
           github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
           ec2-image-id: ${{ steps.decode-vars.outputs.AMI_ID }}
-          #ec2-instance-type: t3a.large
+          ec2-instance-type: t3a.medium
           #ec2-instance-type: c6a.xlarge
-          ec2-instance-type: x2iedn.xlarge
+          #ec2-instance-type: x2iedn.xlarge
           #ec2-instance-type: t3a.small
           subnet-id: ${{ env.PublicSubnetOne }}
           security-group-id: ${{ env.GithubRunnerSecurityGroup }}
@@ -551,6 +551,43 @@ jobs:
         run: |
           aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}-test
 
+      - name: notify test-service-deploy
+        uses: someimportantcompany/github-actions-slack-message@v1
+        id: slack-fail-test-service-deploy
+        if: failure()
+        with:
+          channel: ${{ secrets.SLACK_CHANNEL }}
+          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
+          text: "test-service-deploy failed :thumbsdown:"
+          color: failure
+
+  test-run-bootstrap:
+    #runs-on: ubuntu-latest
+    runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
+    needs:
+      - sec-check      
+      #- load-secrets
+      - set-environment-params
+      - test-service-deploy
+      - start-runner1
+      - load-test-database
+    if: github.ref == 'refs/heads/stage'
+    #if: startsWith(github.event.ref, 'refs/tags/v')    
+    steps:
+      - name: decode secrets
+        id: decode-secrets
+        run: |
+          export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
+          echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          mask-aws-account-id: false
+      
       - name: Run Bootstrap
         run: |
           set -x
@@ -565,7 +602,7 @@ jobs:
           echo $TASK_BOOTSTRAP_ARN >> task_bootstrap_arn.env
           echo $TASK_BOOTSTRAP > task_bootstrap_test.json
           
-          aws ecs wait tasks-stopped --region=${{ env.AWS_DEFAULT_REGION }} --cluster ${{ env.ECS_CLUSTER }} --tasks $TASK_BOOTSTRAP_ARN
+          #aws ecs wait tasks-stopped --region=${{ env.AWS_DEFAULT_REGION }} --cluster ${{ env.ECS_CLUSTER }} --tasks $TASK_BOOTSTRAP_ARN
 
       - name: Wait for Bootstrap to finish
         run: |
@@ -586,14 +623,16 @@ jobs:
         with:
           channel: ${{ secrets.SLACK_CHANNEL }}
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
-          text: "test-service-deploy failed :thumbsdown:"
+          text: "test-bootstrap failed :thumbsdown:"
           color: failure
 
+      
   #stage only          
   test-run:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner              
     needs:
+      - test-run-bootstrap
       - test-service-deploy
       - set-environment-params      
       #- load-secrets
@@ -608,8 +647,8 @@ jobs:
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
       # TODO Required for Test Report?
-      - name: Checkout
-        uses: actions/checkout@v2                  
+      #- name: Checkout
+      #  uses: actions/checkout@v2                  
           
       - name: Run Ghost Inspector Suite
         uses: DATADEER/run-ghost-inspector-suite-action@v1.2
@@ -617,33 +656,34 @@ jobs:
           suiteID: ${{ secrets.GHOST_SUITE_ID }}
           startURL: "https://test.${{ env.CLIENT_NAME }}.avatarnewyork.site/"
           GHOST_INSPECTOR_API_KEY: ${{ secrets.GHOST_API_KEY }}          
-          
-      - name: Store Ghost Inspector Test Results
-        run: |
-            export GHOST_TEST_RESULT_ID=`curl "https://api.ghostinspector.com/v1/suites/${{ secrets.GHOST_SUITE_ID }}/results/?count=1&apiKey=${{ secrets.GHOST_API_KEY }}" |jq -j ".data[0]._id"`;
-            curl "https://api.ghostinspector.com/v1/suite-results/${GHOST_TEST_RESULT_ID}/xunit/?apiKey=${{ secrets.GHOST_API_KEY }}" > ghostinspector_results.xunit.xml;
-            cat ghostinspector_results.xunit.xml | docker run --rm --name=dotnet -i avatarnewyork/dotnet:latest /xunit2junit.sh > ghostinspector_results_processed.junit.xml;
+
+      # tmp remove - save about 40 secs - or add docker image to AMI
+      #- name: Store Ghost Inspector Test Results
+      #  run: |
+      #      export GHOST_TEST_RESULT_ID=`curl "https://api.ghostinspector.com/v1/suites/${{ secrets.GHOST_SUITE_ID }}/results/?count=1&apiKey=${{ secrets.GHOST_API_KEY }}" |jq -j ".data[0]._id"`;
+      #      curl "https://api.ghostinspector.com/v1/suite-results/${GHOST_TEST_RESULT_ID}/xunit/?apiKey=${{ secrets.GHOST_API_KEY }}" > ghostinspector_results.xunit.xml;
+      #      cat ghostinspector_results.xunit.xml | docker run --rm --name=dotnet -i avatarnewyork/dotnet:latest /xunit2junit.sh > ghostinspector_results_processed.junit.xml;
 
 
-      - name: Archive Test Results Artifacts 
-        uses: actions/upload-artifact@v3
-        with:
-          name: Upload GI Junit Results
-          path: |
-            *.xml
+      #- name: Archive Test Results Artifacts 
+      #  uses: actions/upload-artifact@v3
+      #  with:
+      #    name: Upload GI Junit Results
+      #    path: |
+      #      *.xml
             
-      - name: Test Report
-        uses: phoenix-actions/test-reporting@v8
-        id: test-report               # Set ID reference for step
-        if: success() || failure()    # run this step even if previous step failed
-        with:
-          name: GI Tests            # Name of the check run which will be created
-          path: ./ghostinspector_results_processed.junit.xml    # Path to test results
-          reporter: java-junit        # Format of test results
+      #- name: Test Report
+      #  uses: phoenix-actions/test-reporting@v8
+      #  id: test-report               # Set ID reference for step
+      #  if: success() || failure()    # run this step even if previous step failed
+      #  with:
+      #    name: GI Tests            # Name of the check run which will be created
+      #    path: ./ghostinspector_results_processed.junit.xml    # Path to test results
+      #    reporter: java-junit        # Format of test results
           
-      - name: Read output variables
-        run: |
-          echo "url is ${{ steps.test-report.outputs.runHtmlUrl }}"
+      #- name: Read output variables
+      #  run: |
+      #    echo "url is ${{ steps.test-report.outputs.runHtmlUrl }}"
           
       - name: notify test-run
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -707,7 +747,7 @@ jobs:
           
       - name: spin up service with image (~3m)
         run: |
-          aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }} --desired-count 1 --force-new-deployment --task-definition=${{ steps.task-def.outputs.ECS_SERVICE_TASK_DEF_ARN }} > ecs_service_update.json
+          aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }} --force-new-deployment --task-definition=${{ steps.task-def.outputs.ECS_SERVICE_TASK_DEF_ARN }} > ecs_service_update.json
           
       - name: wait for service to become stable
         run: |
@@ -768,9 +808,9 @@ jobs:
       - start-runner1
       - set-environment-params
       #- load-secrets
-      #- test-run
+      - test-run
       - test-service-deploy
-      - deployment
+      #- deployment
     if: |
       always() &&
       (needs.test-service-deploy.result == 'success') &&
