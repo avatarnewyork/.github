@@ -595,7 +595,11 @@ jobs:
       - test-service-deploy
       - start-runner1
       - load-test-database
-    if: github.ref == 'refs/heads/stage'
+    if: |
+      always() &&
+      github.ref == 'refs/heads/stage' &&
+      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
+    
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
@@ -660,8 +664,11 @@ jobs:
       - test-service-deploy
       - set-environment-params      
       #- load-secrets
-      - start-runner2      
-    if: github.ref == 'refs/heads/stage'
+      - start-runner2
+    if: |
+      always() &&
+      github.ref == 'refs/heads/stage' &&
+      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')            
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
