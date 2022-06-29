@@ -237,7 +237,7 @@ jobs:
     #["self-hosted", "${{ needs.start-runner2.outputs.label }}"]
     if: |
       needs.set-environment-params.outputs.platform == 'drupal' ||
-      needs.set-environment-params.outputs.platform == 'symfony' ||
+      needs.set-environment-params.outputs.platform == 'symfony'
     steps:
       - name: Checkout
         uses: actions/checkout@v2      
