@@ -535,7 +535,9 @@ jobs:
       - set-environment-params
       - build
       - start-runner1      
-    if: github.ref == 'refs/heads/stage'
+    if: |      
+      github.ref == 'refs/heads/stage' &&
+      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
@@ -587,7 +589,6 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
     needs:
-      - sec-check      
       #- load-secrets
       - set-environment-params
       - test-service-deploy
@@ -734,7 +735,7 @@ jobs:
       (needs.test-run.result == 'success' || needs.test-run.result == 'skipped') &&
       (needs.load-test-database.result == 'success' || needs.load-test-database.result == 'skipped') &&      
       (needs.start-runner2.result == 'success' || needs.start-runner2.result == 'skipped') &&      
-      (needs.sec-check.result == 'success') &&
+      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped') &&
       (needs.build.result == 'success') 
     steps:
       - name: decode secrets
