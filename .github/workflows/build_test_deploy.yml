@@ -535,7 +535,8 @@ jobs:
       - set-environment-params
       - build
       - start-runner1      
-    if: |      
+    if: |
+      always() &&
       github.ref == 'refs/heads/stage' &&
       (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
     #if: startsWith(github.event.ref, 'refs/tags/v')    
