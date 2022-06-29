@@ -36,7 +36,8 @@ jobs:
       ecs_service_instance_name: ${{ steps.set-envs.outputs.ECS_SERVICE_INSTANCE_NAME }}
       ecs_service_name: ${{ steps.set-envs.outputs.ECS_SERVICE_NAME }}
       ami_id: ${{ steps.set-envs.outputs.AMI_ID }}
-      secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}          
+      secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}
+      platform: ${{ steps.set-platform.outputs.PLATFORM }}
     steps:
       - name: notify start
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -46,7 +47,24 @@ jobs:
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "starting build"
           color: gray
-      
+
+      - name: Checkout
+        uses: actions/checkout@v3      
+        with:
+          path: 'project'
+        
+      - name: set-platform
+        id: set-platform
+        run: |          
+          if [[ -d "project/web/modules" ]]; then
+            export APP_PLATFORM=drupal
+          elif [[ -f "project/public/wp-settings.php" ]]; then
+            export APP_PLATFORM=wordpress
+          else
+            export APP_PLATFORM=symfony
+          fi
+          echo "::set-output name=PLATFORM::$APP_PLATFORM"
+          
       - name: Get Environment Name
         id: set-envs
         run: |          
@@ -214,8 +232,12 @@ jobs:
   sec-check:
     needs:
       - start-runner2
+      - set-environment-params
     runs-on: ${{ needs.start-runner2.outputs.label }}
     #["self-hosted", "${{ needs.start-runner2.outputs.label }}"]
+    if: |
+      needs.set-environment-params.outputs.platform == drupal ||
+      needs.set-environment-params.outputs.platform == symfony ||
     steps:
       - name: Checkout
         uses: actions/checkout@v2      
