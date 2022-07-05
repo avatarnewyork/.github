@@ -7,16 +7,17 @@ name: build-test-deploy
 
 on:
   workflow_call:
-    php_version:
-      description: 'PHP Version'
-      default: '8.0.10'
-      required: false
-      type: string    
-    build_version:
-      description: 'Apache Build Version'
-      default: 'latest'
-      required: false
-      type: string    
+    inputs:
+      php_version:
+        description: 'PHP Version'
+        default: '8.0.10'
+        required: false
+        type: string    
+      build_version:
+        description: 'Apache Build Version'
+        default: 'latest'
+        required: false
+        type: string    
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
