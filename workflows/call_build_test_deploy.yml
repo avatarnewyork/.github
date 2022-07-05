@@ -22,10 +22,11 @@ on:
 # SEC_CHECK_DISABLED
 
 
-
-jobs:
+jobs:            
   call-workflow:
     if: github.repository != 'avatarnewyork/.github'
-    uses: avatarnewyork/.github/.github/workflows/build_test_deploy.yml@master
+    uses: avatarnewyork/.github/.github/workflows/build_test_deploy.yml@runner
     secrets: inherit
-      
+    with:
+      php_version: 8.0.20
+      build_version: latest
