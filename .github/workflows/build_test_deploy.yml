@@ -402,7 +402,7 @@ jobs:
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
-            --build-arg BUILD_VERSION=${{ inputs.build_version }} \                        
+            --build-arg BUILD_VERSION=${{ inputs.build_version }} \
             -t builder \
             --file=project/.docker-build/Dockerfile project
           docker save builder | gzip > builder.tar.gz
@@ -427,8 +427,8 @@ jobs:
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
-            --build-arg BUILD_VERSION=${{ inputs.build_version }} \                                    
-            --file=project/.docker-build/Dockerfile project            
+            --build-arg BUILD_VERSION=${{ inputs.build_version }} \
+            --file=project/.docker-build/Dockerfile project
 
 
       - name: Push to Amazon ECR
