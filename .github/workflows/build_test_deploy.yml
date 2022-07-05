@@ -7,6 +7,16 @@ name: build-test-deploy
 
 on:
   workflow_call:
+    php_version:
+      description: 'PHP Version'
+      default: '8.0.10'
+      required: false
+      type: string    
+    build_version:
+      description: 'Apache Build Version'
+      default: 'latest'
+      required: false
+      type: string    
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -390,6 +400,8 @@ jobs:
           docker build --compress --target=builder \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
+            --build-arg PHP_VERSION=${{ inputs.php_version }} \
+            --build-arg BUILD_VERSION=${{ inputs.build_version }} \                        
             -t builder \
             --file=project/.docker-build/Dockerfile project
           docker save builder | gzip > builder.tar.gz
@@ -413,6 +425,8 @@ jobs:
             -t $ECR_REGISTRY/$ECR_REPOSITORY:test \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
+            --build-arg PHP_VERSION=${{ inputs.php_version }} \
+            --build-arg BUILD_VERSION=${{ inputs.build_version }} \                                    
             --file=project/.docker-build/Dockerfile project            
 
 
