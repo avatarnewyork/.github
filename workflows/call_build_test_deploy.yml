@@ -30,4 +30,4 @@ jobs:
     with:
       php_version: 8.0.20
       build_version: latest
-      #document_root: custom/docroot_sub_dir
+      #web_root: custom/webroot_sub_dir

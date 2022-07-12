@@ -18,7 +18,7 @@ on:
         default: 'latest'
         required: false
         type: string
-      document_root:
+      web_root:
         description: 'Override default docroot'
         required: false
         type: string
@@ -85,9 +85,9 @@ jobs:
 
       - name: set custom build args
         id: set-custom-build-args
-        if: inputs.document_root
+        if: inputs.web_root
         run: |
-          export BUILD_ARGS=" --build-arg DOCUMENT_ROOT=${{ inputs.document_root }} "
+          export BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }} "
           echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           
         
