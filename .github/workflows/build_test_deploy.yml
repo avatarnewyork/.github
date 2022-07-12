@@ -17,7 +17,11 @@ on:
         description: 'Apache Build Version'
         default: 'latest'
         required: false
-        type: string    
+        type: string
+      document_root:
+        description: 'Override default docroot'
+        required: false
+        type: string
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -49,6 +53,7 @@ jobs:
       ami_id: ${{ steps.set-envs.outputs.AMI_ID }}
       secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}
       platform: ${{ steps.set-platform.outputs.PLATFORM }}
+      custom_build_args: ${{ steps.set-custom-build-args.outputs.BUILD_ARGS }}
     steps:
       - name: notify start
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -67,7 +72,9 @@ jobs:
       - name: set-platform
         id: set-platform
         run: |          
-          if [[ -d "project/web/modules" ]]; then
+          if ls project/*/authorize.php 1> /dev/null 2>&1; then
+            export APP_PLATFORM=drupal7
+          elif [[ -d "project/web/modules" ]]; then
             export APP_PLATFORM=drupal
           elif [[ -f "project/public/wp-settings.php" ]]; then
             export APP_PLATFORM=wordpress
@@ -75,7 +82,15 @@ jobs:
             export APP_PLATFORM=symfony
           fi
           echo "::set-output name=PLATFORM::$APP_PLATFORM"
+
+      - name: set custom build args
+        id: set-custom-build-args
+        if: inputs.document_root
+        run: |
+          export BUILD_ARGS=" --build-arg DOCUMENT_ROOT=${{ inputs.document_root }} "
+          echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           
+        
       - name: Get Environment Name
         id: set-envs
         run: |          
@@ -367,15 +382,16 @@ jobs:
       - name: copy platform specific build files
         id: copy-platform-build-files
         run: |
-          ls -lha
-          if [[ -d "project/web/modules" ]]; then
-            export APP_PLATFORM=drupal
-          elif [[ -f "project/public/wp-settings.php" ]]; then
-            export APP_PLATFORM=wordpress
-          else
-            export APP_PLATFORM=symfony
-          fi
-          echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"
+          #ls -lha
+          #if [[ -d "project/web/modules" ]]; then
+          #  export APP_PLATFORM=drupal
+          #elif [[ -f "project/public/wp-settings.php" ]]; then
+          #  export APP_PLATFORM=wordpress
+          #else
+          #  export APP_PLATFORM=symfony
+          #fi
+          export APP_PLATFORM=${{ needs.set-environment-params.outputs.platform }}
+          #echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"
           # DOC: Allow for overrides if the .docker-build dir and associated files exist
           if [[ -d project/.docker-build ]]; then
             if [[ ! -f project/.docker-build/Dockerfile ]]; then
@@ -397,13 +413,13 @@ jobs:
         #continue-on-error: true
         run: |
           set -x
-          #  --build-arg BUILDKIT_INLINE_CACHE=1 
+          #  --build-arg BUILDKIT_INLINE_CACHE=1
           docker build --compress --target=builder \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
             --build-arg BUILD_VERSION=${{ inputs.build_version }} \
-            -t builder \
+            ${{ needs.set-environment-params.outputs.custom_build_args }} -t builder \
             --file=project/.docker-build/Dockerfile project
           docker save builder | gzip > builder.tar.gz
         
@@ -428,7 +444,7 @@ jobs:
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
             --build-arg BUILD_VERSION=${{ inputs.build_version }} \
-            --file=project/.docker-build/Dockerfile project
+            ${{ needs.set-environment-params.outputs.custom_build_args }} --file=project/.docker-build/Dockerfile project
 
 
       - name: Push to Amazon ECR
