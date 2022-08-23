@@ -1,0 +1,127 @@
+name: project-deploy-status
+on:
+  push:
+    branches:
+      - stage
+  release:
+    types:
+      - published
+    
+# 1. only trigger on stage branch
+# 2. get commit ref
+# 3. git branch --points-at 3a355c1bac2ca515e99d9c748a62b345e03cf01b |grep -v stage (i.e. ref from above) excluded stage
+# 4. move issue branch with matching name to ReadyOnStage Only If "InProgress" status
+
+# get the issue numbers
+
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Git branch name
+        id: git-branch-name
+        uses: EthanSK/git-branch-name-action@v1
+      - name: Echo the branch name
+        run: echo "Branch name ${GIT_BRANCH_NAME}"
+      - name: Echo SHA of branch
+        run: echo "SHA ${{ github.sha }}"
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: retrieve issue nums
+        id: issuenumbers
+        run: |
+          if [[ -n "${{ github.event.action }}" ]]; then
+            export ISSUE_NUMS=$(git branch -r --merged | grep -v '*' |cut -d'/' -f 2 | cut -d'-' -f 1 | grep -E '^[[:digit:]]+' | sed 'H;1h;$!d;x;y/\n/,/')          
+            echo "::set-output name=ISSUE_NUMS::$ISSUE_NUMS"
+            echo "merged: git branch --merged"
+            echo "issue nums: $ISSUE_NUMS"
+          else
+            export ISSUE_NUMS=$(git branch -r --points-at ${{ github.sha }} |grep -v "\<origin/stage\>" |grep -v "\<origin/master\>" | cut -d'/' -f 2 | cut -d'-' -f 1 | grep -E '^[[:digit:]]+' | sed 'H;1h;$!d;x;y/\n/,/')
+            echo "::set-output name=ISSUE_NUMS::$ISSUE_NUMS"
+          fi
+          echo $ISSUE_NUMS
+      - name: Echo point-at branches
+        id: set-matrix
+        run: |
+          export ISSUE_NUMS=${{ steps.issuenumbers.outputs.ISSUE_NUMS }}
+          IFS=':, ' read -r -a array <<< "$ISSUE_NUMS"
+          prefix=''
+          printf '%s' '{"include":[' >> /tmp/json.out
+          for item in "${array[@]}"; do
+          printf '%s%s' "$prefix" "{\"issuenum\":\"$item\"}" >> /tmp/json.out
+          prefix=','
+          done
+          printf '%s\n' ']}' >> /tmp/json.out
+           
+          export MATRIX_INCLUDE=`cat /tmp/json.out`
+           #export MATRIX_INCLUDE="{\"include\":[{\"project\":\"foo\",\"config\":\"Debug\"},{\"project\":\"bar\",\"config\":\"Release\"}]}"
+           #echo "::set-output name=matrix::{\"include\":[$ISSUE_NUMS]}"
+          echo "::set-output name=matrix::$MATRIX_INCLUDE"
+          
+  job2:
+    needs: job1
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{fromJson(needs.job1.outputs.matrix)}}
+    steps:
+      - name: check if issue number
+        id: isissue
+        run: |
+          if [[ ${{ matrix.issuenum }} =~ ^[0-9]+$ ]]; then
+            echo ::set-output name=match::true
+          fi
+      #- name: debug
+      #  env : { CONTENT : "${{ toJson(github) }}" }
+      #  run : "echo $CONTENT"
+      #- name: isrelease
+      #  id: isrelease
+      #  uses: lee-dohm/select-matching-issues@v1
+      #  with:
+      #    query: "label:release repo:${{ github.repository }}"
+      #    token: ${{ secrets.ORG_PROJECT_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0      
+      - name: isrelease
+        id: isrelease
+        run: |
+          echo $(gh issue view ${{ matrix.issuenum }} --json milestone --jq '.milestone')
+          MILESTONE=$(gh issue view ${{ matrix.issuenum }} --json milestone --jq '.milestone' |wc -c)
+          if [[ $MILESTONE > 1 ]]; then
+            echo "::set-output name=MILESTONED::true"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_PROJECT_TOKEN }}          
+      - name: deploy env name
+        id: deployenv
+        run: |
+          if [[ -n "${{ github.event.action }}" ]]; then
+            echo "::set-output name=ENV_NAME::production"
+          else
+            echo "::set-output name=ENV_NAME::stage"
+          fi
+      - name: Create stage comment
+        if: steps.isissue.outputs.match == 'true' && steps.deployenv.outputs.ENV_NAME == 'stage'
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          issue-number: ${{ matrix.issuenum }}
+          body: |
+            deploying to ${{ steps.deployenv.outputs.ENV_NAME }}
+          reactions: 'rocket'      
+      - name: Create production comment
+        if: steps.isissue.outputs.match == 'true' && steps.deployenv.outputs.ENV_NAME == 'production' && steps.isrelease.outputs.MILESTONED == 'true'
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          issue-number: ${{ matrix.issuenum }}
+          body: |
+            deploying to ${{ steps.deployenv.outputs.ENV_NAME }}
+          reactions: 'rocket'      
+      #- name: debug
+      #  run: echo ${{ matrix.issuenum }}

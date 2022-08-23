@@ -1,0 +1,106 @@
+name: Project automations
+on:
+  issues:
+    types:
+      - opened
+      - assigned
+      - reopened
+      - closed
+      - milestoned
+  issue_comment:
+    types:
+      - created
+      - edited
+      
+  #pull_request:
+  #  types:
+  #    - opened
+  #    - ready_for_review
+  #    - reopened
+  #    - review_requested
+  #    - closed
+jobs:
+  issue_opened_and_reopened:
+    name: issue_opened_and_reopened
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened' || github.event.action == 'reopened'
+    steps:
+      - name: 'Move issue to "ToDo"'
+        uses: leonsteinhaeuser/project-beta-automations@v1.3.0
+        with:
+          gh_token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          organization: avatarnewyork
+          project_id: ${{ secrets.PROJECT_ID }}
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: "ToDo"
+  issue_assigned:
+    name: issue_assigned
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'assigned' 
+    steps:
+      - name: 'Move issue to "Assigned"'
+        uses: leonsteinhaeuser/project-beta-automations@v1.3.0
+        with:
+          gh_token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          organization: avatarnewyork
+          project_id: ${{ secrets.PROJECT_ID }}
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: "Assigned"
+      - name: Create Issue Branch
+        uses: robvanderleek/create-issue-branch@main
+        env:
+          #GITHUB_TOKEN: ${{ secrets.ORG_PROJECT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+  issue_on_stage:
+    name: issue_on_stage
+    runs-on: ubuntu-latest
+    if: github.event.comment.body == 'deploying to stage' 
+    steps:
+      - name: 'Move issue to "ReadyOnStage"'
+        uses: leonsteinhaeuser/project-beta-automations@v1.3.0
+        with:
+          gh_token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          organization: avatarnewyork
+          project_id: ${{ secrets.PROJECT_ID }}
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: "ReadyOnStage"
+  ready_for_release:
+    name: ready_for_release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'milestoned' 
+    steps:
+      - name: 'Move issue to "ReadyForRelease"'
+        uses: leonsteinhaeuser/project-beta-automations@v1.3.0
+        with:
+          gh_token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          organization: avatarnewyork
+          project_id: ${{ secrets.PROJECT_ID }}
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: "ReadyForRelease"
+  issue_on_production:
+    name: issue_on_stage
+    runs-on: ubuntu-latest
+    if: github.event.comment.body == 'deploying to production' 
+    steps:
+      - name: 'Move issue to "ReadyOnProduction"'
+        uses: leonsteinhaeuser/project-beta-automations@v1.3.0
+        with:
+          gh_token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          organization: avatarnewyork
+          project_id: ${{ secrets.PROJECT_ID }}
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: "ReadyOnProduction"
+  issue_closed:
+    name: issue_closed
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'closed'
+    steps:
+      - name: 'Moved issue to "Done"'
+        uses: leonsteinhaeuser/project-beta-automations@v1.3.0
+        with:
+          gh_token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          organization: avatarnewyork
+          project_id: ${{ secrets.PROJECT_ID }}
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: "Done"

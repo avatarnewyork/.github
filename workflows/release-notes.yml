@@ -1,0 +1,72 @@
+# Trigger the workflow on milestone events
+on: 
+  milestone:
+    types: [created, closed]
+    
+name: Milestone Closure
+jobs:
+  create-release-branch:
+    name: create release branch
+    if: github.event.action == 'created'
+    runs-on: ubuntu-latest
+    steps:
+      - name: create release branch
+        uses: peterjgrainger/action-create-branch@v2.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          branch: ${{ github.event.milestone.title }}
+          
+  generate-release:
+    name: Generete draft release from milestone
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2      
+      - name: Relese notes format
+        #uses: Beakyn/gha-format-release-notes@v1.0.1
+        #uses: avatarnewyork/gha-format-release-notes
+        #uses: actions/checkout@master
+        uses: ./.github/actions/gha-format-release-notes-1.0.1
+        id: format
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          #name: avatarnewyork/gha-format-release-notes
+          #ref: refs/heads/release
+          # required
+          repository: ${{ github.repository }}
+          milestone: ${{ github.event.milestone.number }}
+
+          # optional
+          custom-row: "#${issue.number} - ${issue.title}"
+          custom-group-by-label: |
+            [
+              {
+                "title": "### Feature 🎉",
+                "labels": ["feat"]
+              },
+              {
+                "title": "### Bug Fixes 🐛",
+                "labels": ["bug"]
+              },
+              {
+                "title": "### Refactor & Improvements ✨",
+                "labels": ["enhancement", "refactor", "chore"]
+              }
+            ]
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          #tag_name: ${{ github.event.inputs.version }}
+          tag_name: ${{ github.event.milestone.title }}
+          release_name: ${{ github.event.milestone.title }}
+          body: ${{steps.format.outputs.release-notes}}
+          draft: true
+          prerelease: false
+        

@@ -1,0 +1,30 @@
+name: pull request
+on:
+  push:
+    branches:
+      'v[0-9].[0-9]+.[0-9]+'
+
+jobs:
+  pull-request:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: Git branch name
+      id: git-branch-name
+      uses: EthanSK/git-branch-name-action@v1      
+    - name: pull-request
+      uses: repo-sync/pull-request@v2
+      with:
+        source_branch: ""                                 # If blank, default: triggered branch
+        destination_branch: "master"                      # If blank, default: master
+        pr_title: "${GIT_BRANCH_NAME}" # Title of pull request
+        pr_body: ":crown: *An automated PR*"              # Full markdown support, requires pr_title to be set
+        pr_template: ".github/PULL_REQUEST_TEMPLATE/pull_request_template.md"   # Path to pull request template, requires pr_title to be set, excludes pr_body
+        #pr_reviewer: "wei,worker"                         # Comma-separated list (no spaces)
+        #pr_assignee: "wei,worker"                         # Comma-separated list (no spaces)
+        #pr_label: "auto-pr"                               # Comma-separated list (no spaces)
+        pr_milestone: "${GIT_BRANCH_NAME}"                 # Milestone name
+        pr_draft: true                                    # Creates pull request as draft
+        pr_allow_empty: true                              # Creates pull request even if there are no changes
+        github_token: ${{ secrets.GITHUB_TOKEN }}  
