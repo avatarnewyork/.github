@@ -46,11 +46,6 @@ jobs:
           project_id: ${{ secrets.PROJECT_ID }}
           resource_node_id: ${{ github.event.issue.node_id }}
           status_value: "Assigned"
-      - name: Create Issue Branch
-        uses: robvanderleek/create-issue-branch@main
-        env:
-          #GITHUB_TOKEN: ${{ secrets.ORG_PROJECT_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
   issue_on_stage:
     name: issue_on_stage
