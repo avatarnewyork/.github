@@ -5,6 +5,10 @@ name: build-test-deploy
 #  group: build-test-deploy
 #  cancel-in-progress: true
 
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
 on:
   workflow_call:
     inputs:
@@ -130,12 +134,20 @@ jobs:
           echo "::set-output name=SECRETS_NAME::$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)"
           
           echo "::set-output name=AWS_REGION::$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)"          
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}
           
       - name: Store ENV from AWS SecretManager
         uses: say8425/aws-secrets-manager-actions@v2
         with:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          #AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          #AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          #AWS_SESSION_TOKEN: 
           AWS_DEFAULT_REGION: ${{ steps.decode-vars.outputs.aws_region }}
           SECRET_NAME: ${{ steps.decode-vars.outputs.SECRETS_NAME }}
           OUTPUT_PATH: '.env'
