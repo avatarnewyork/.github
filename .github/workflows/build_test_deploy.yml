@@ -195,9 +195,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false          
           
       - name: Start EC2 runner
@@ -244,9 +244,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false
           
       - name: Start EC2 runner
@@ -356,9 +356,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false
 
       - name: Login to Amazon ECR
@@ -502,9 +502,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false
           
       - name: Get MySQL Backup File from S3
@@ -593,9 +593,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false
 
       - name: Get Task Definition
@@ -654,9 +654,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false
       
       - name: Run Bootstrap
@@ -798,9 +798,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false
 
 
@@ -899,9 +899,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false
             
       - name: spin down test service (~5m)
@@ -941,9 +941,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}
           mask-aws-account-id: false
           
       - name: Stop EC2 runner
@@ -977,9 +977,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
+          role-session-name: avatargithubaction
+          aws-region: ${{ steps.decode-vars.outputs.aws_region }}
           mask-aws-account-id: false
           
       - name: Stop EC2 runner
