@@ -82,6 +82,7 @@ jobs:
             export APP_PLATFORM=symfony
           fi
           echo "::set-output name=PLATFORM::$APP_PLATFORM"
+          echo "PLATFORM=$APP_PLATFORM" >>$GITHUB_OUTPUT
 
       - name: set custom build args
         id: set-custom-build-args
