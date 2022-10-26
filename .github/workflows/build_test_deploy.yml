@@ -197,7 +197,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::001650231941:role/AvatarGithubActions
           role-session-name: avatargithubaction
-          aws-region: ${{ steps.decode-vars.outputs.aws_region }}          
+          aws-region: ${{ env.AWS_DEFAULT_REGION }} #${{ steps.decode-vars.outputs.aws_region }}          
           mask-aws-account-id: false          
           
       - name: Start EC2 runner
