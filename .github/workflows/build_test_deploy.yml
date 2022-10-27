@@ -125,7 +125,6 @@ jobs:
           echo "ECS_SERVICE_INSTANCE_NAME=$ECS_SERVICE_INSTANCE_NAME" >>$GITHUB_OUTPUT          
           #echo "::set-output name=AMI_ID::$AMI_ID"
           echo "AMI_ID=$AMI_ID" >>$GITHUB_OUTPUT
-          echo "=" >>$GITHUB_OUTPUT                    
         env:
           ECS_SERVICE_INSTANCE_NAME_STAGE: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_STAGE }}
           ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}          
