@@ -98,25 +98,34 @@ jobs:
         run: |          
           if [[ ${{ github.ref_type }} == 'branch' ]]; then
             echo "ENVIRONMENT_NAME=stage"
-            echo "::set-output name=ENVIRONMENT_NAME::stage"
-            echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"            
+            #echo "::set-output name=ENVIRONMENT_NAME::stage"
+            echo "ENVIRONMENT_NAME=stage" >>$GITHUB_OUTPUT          
+            #echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"
+            echo "ENVIRONMENT_SHORT_NAME=stage" >>$GITHUB_OUTPUT          
             export AWS_REGION=`echo ${{ env.AWS_REGION_STAGE }} | gzip | base64 -w0`
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }}-stage" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }} | gzip | base64 -w0`
             export AMI_ID=`echo ${{ env.AWS_AMI_ID_STAGE }} | gzip | base64 -w0`
           else
             echo "ENVIRONMENT_NAME=production"          
-            echo "::set-output name=ENVIRONMENT_NAME::production"
-            echo "::set-output name=ENVIRONMENT_SHORT_NAME::prod"
+            #echo "::set-output name=ENVIRONMENT_NAME::production"
+            echo "ENVIRONMENT_NAME=production" >>$GITHUB_OUTPUT          
+            #echo "::set-output name=ENVIRONMENT_SHORT_NAME::prod"
+            echo "ENVIRONMENT_SHORT_NAME=prod" >>$GITHUB_OUTPUT          
             export AWS_REGION=`echo ${{ env.AWS_REGION_PROD }} | gzip | base64 -w0`                       
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }}-prod" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }} | gzip | base64 -w0`
             export AMI_ID=`echo ${{ env.AWS_AMI_ID_PROD }} | gzip | base64 -w0`            
           fi
-          echo "::set-output name=AWS_REGION::$AWS_REGION"          
-          echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
-          echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"
-          echo "::set-output name=AMI_ID::$AMI_ID"          
+          #echo "::set-output name=AWS_REGION::$AWS_REGION"
+          echo "AWS_REGION=$AWS_REGION" >>$GITHUB_OUTPUT          
+          #echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
+          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >>$GITHUB_OUTPUT          
+          #echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"
+          echo "ECS_SERVICE_INSTANCE_NAME=$ECS_SERVICE_INSTANCE_NAME" >>$GITHUB_OUTPUT          
+          #echo "::set-output name=AMI_ID::$AMI_ID"
+          echo "AMI_ID=$AMI_ID" >>$GITHUB_OUTPUT
+          echo "=" >>$GITHUB_OUTPUT                    
         env:
           ECS_SERVICE_INSTANCE_NAME_STAGE: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_STAGE }}
           ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}          
@@ -129,10 +138,11 @@ jobs:
       - name: decode vars
         id: decode-vars
         run: |
-          echo "::set-output name=SECRETS_NAME::$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)"
-          
-          echo "::set-output name=AWS_REGION::$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)"          
-          
+          #echo "::set-output name=SECRETS_NAME::$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)"
+          echo "SECRETS_NAME=$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                              
+          #echo "::set-output name=AWS_REGION::$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)"          
+          echo "AWS_REGION=$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT
+
       - name: Store ENV from AWS SecretManager
         uses: say8425/aws-secrets-manager-actions@v2
         with:
@@ -146,7 +156,8 @@ jobs:
         id: enc-sec
         run: |
           export SECRETS_ENC=`cat .env | gzip | base64 -w0`
-          echo "::set-output name=SECRETS_ENC::$SECRETS_ENC"
+          #echo "::set-output name=SECRETS_ENC::$SECRETS_ENC" 
+          echo "SECRETS_ENC=$SECRETS_ENC" >>$GITHUB_OUTPUT                    `         
 
       - name: notify load secrets failed
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -174,7 +185,8 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT
           
       - name: decode secrets
         id: decode-secrets
@@ -223,8 +235,8 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
-                
+          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                    
       - name: decode secrets
         id: decode-secrets
         run: |
@@ -459,7 +471,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:test          
-          echo "::set-output name=IMAGE_URI::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          #echo "::set-output name=IMAGE_URI::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >>$GITHUB_OUTPUT                    
           
       - name: notify build failed
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -599,7 +612,8 @@ jobs:
           
           # register task def
           export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
-          echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
+          #echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
+          echo "ECS_SERVICE_TASK_DEF_ARN=$ECS_SERVICE_TASK_DEF_ARN" >>$GITHUB_OUTPUT
           
       - name: spin up test service with test image (~3m)
         run: |
@@ -807,7 +821,8 @@ jobs:
           
           # register task def
           export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
-          echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
+          #echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
+          echo "ECS_SERVICE_TASK_DEF_ARN=$ECS_SERVICE_TASK_DEF_ARN" >>$GITHUB_OUTPUT                    
           
       - name: spin up service with image (~3m)
         run: |
@@ -920,7 +935,8 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"
+          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                    
           
       - name: decode secrets
         id: decode-secrets
@@ -956,8 +972,9 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
-          
+          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                    
+
       - name: decode secrets
         id: decode-secrets
         run: |
