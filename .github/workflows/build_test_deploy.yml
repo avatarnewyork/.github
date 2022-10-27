@@ -155,9 +155,9 @@ jobs:
       - name: set envs
         id: enc-sec
         run: |
-          export SECRETS_ENC=$(cat .env | gzip | base64 -w0)
-          echo $SECRETS_ENC
-          #echo "SECRETS_ENC=$SECRETS_ENC" >>$GITHUB_OUTPUT                    `         
+          export SECRETS_ENC1=$(cat .env | gzip | base64 -w0)
+          echo $SECRETS_ENC1
+          echo "SECRETS_ENC=$SECRETS_ENC1" >>$GITHUB_OUTPUT                    `         
 
       - name: notify load secrets failed
         uses: someimportantcompany/github-actions-slack-message@v1
