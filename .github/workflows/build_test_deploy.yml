@@ -125,6 +125,7 @@ jobs:
           echo "ECS_SERVICE_INSTANCE_NAME=$ECS_SERVICE_INSTANCE_NAME" >>$GITHUB_OUTPUT          
           #echo "::set-output name=AMI_ID::$AMI_ID"
           echo "AMI_ID=$AMI_ID" >>$GITHUB_OUTPUT
+          
         env:
           ECS_SERVICE_INSTANCE_NAME_STAGE: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_STAGE }}
           ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}          
@@ -155,7 +156,6 @@ jobs:
         id: enc-sec
         run: |
           export SECRETS_ENC=`cat .env | gzip | base64 -w0`
-          #echo "::set-output name=SECRETS_ENC::$SECRETS_ENC" 
           echo "SECRETS_ENC=$SECRETS_ENC" >>$GITHUB_OUTPUT                    `         
 
       - name: notify load secrets failed
