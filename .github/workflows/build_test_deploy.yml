@@ -156,6 +156,7 @@ jobs:
         id: enc-sec
         run: |
           export SECRETS_ENC=$(cat .env | gzip | base64 -w0)
+          cat .env
           echo "SECRETS_ENC=$SECRETS_ENC" >>$GITHUB_OUTPUT                    `         
 
       - name: notify load secrets failed
