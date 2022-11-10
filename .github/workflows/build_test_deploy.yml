@@ -497,7 +497,10 @@ jobs:
       - set-environment-params
       #- load-secrets
       - start-runner2      
-    if: github.ref == 'refs/heads/stage'
+    if: |
+      always() &&
+      github.ref == 'refs/heads/stage' &&
+      inputs.skip_test == '0'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
@@ -650,6 +653,7 @@ jobs:
     if: |
       always() &&
       github.ref == 'refs/heads/stage' &&
+      inputs.skip_test == '0' &&      
       (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
     
     #if: startsWith(github.event.ref, 'refs/tags/v')    
@@ -720,6 +724,7 @@ jobs:
     if: |
       always() &&
       github.ref == 'refs/heads/stage' &&
+      inputs.skip_test == '0' &&      
       (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')            
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
