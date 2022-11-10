@@ -22,6 +22,10 @@ on:
         description: 'Override default docroot'
         required: false
         type: string
+      skip_test:
+        description: 'Skip GI tests'
+        required: false
+        type: string
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -583,6 +587,7 @@ jobs:
     if: |
       always() &&
       github.ref == 'refs/heads/stage' &&
+      inputs.skip_test &&
       (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
