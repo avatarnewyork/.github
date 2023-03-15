@@ -27,6 +27,11 @@ on:
         required: false
         type: string
         default: '0'
+      build_context:
+        description: 'path to docker build context.  Default to project'
+        required: false
+        type: string
+        default: 'project'
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -438,7 +443,7 @@ jobs:
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
             --build-arg BUILD_VERSION=${{ inputs.build_version }} \
             ${{ needs.set-environment-params.outputs.custom_build_args }} -t builder \
-            --file=project/.docker-build/Dockerfile project
+            --file=project/.docker-build/Dockerfile ${{ inputs.build_context }}
           docker save builder | gzip > builder.tar.gz
         
       - name: Build and tag Amazon ECR Image
@@ -462,7 +467,7 @@ jobs:
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
             --build-arg BUILD_VERSION=${{ inputs.build_version }} \
-            ${{ needs.set-environment-params.outputs.custom_build_args }} --file=project/.docker-build/Dockerfile project
+            ${{ needs.set-environment-params.outputs.custom_build_args }} --file=project/.docker-build/Dockerfile ${{ inputs.build_context }}
 
 
       - name: Push to Amazon ECR
