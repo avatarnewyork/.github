@@ -105,7 +105,7 @@ jobs:
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
 
-          if ${{ inputs.build_context }}; then          
+          if [ ! -z ${{ inputs.build_context }} ]; then          
             echo "BUILD_CONTEXT=${{ inputs.build_context }}" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_APPEND=${{ inputs.build_context }}/" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_PREPEND=/${{ inputs.build_context }}" >>$GITHUB_OUTPUT
@@ -306,7 +306,7 @@ jobs:
 
       - name: DEBUG composer.lock
         run: |
-          echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_contex }}"t_append
+          echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_contex }}"
           ls -lha .
           ls -lha ${{ inputs.build_context }}/
           ls -lha ${{ needs.set-environment-params.outputs.build_context_append }}
