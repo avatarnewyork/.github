@@ -289,7 +289,12 @@ jobs:
       needs.set-environment-params.outputs.platform == 'symfony'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2      
+        uses: actions/checkout@v2
+
+      - name: DEBUG composer.lock
+        run: |
+          ls -lha .
+          ls -lha ${{ inputs.build_context }}/
     
       - name: Restore composer.lock cache
         id: cache-composer-lock
@@ -420,6 +425,11 @@ jobs:
             if [[ ! -f project/.docker-build/Dockerfile ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/Dockerfile" project/.docker-build/Dockerfile
             fi
+            
+            echo "DEBUGGING"
+            ls -lha .
+            ls -lha ${{ inputs.build_context }}/
+            
             if [[ ! -f project/.docker-build/bootstrap.sh ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/.docker-build/bootstrap.sh
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/${{ inputs.build_context }}/.docker-build/bootstrap.sh              
