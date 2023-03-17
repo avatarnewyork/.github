@@ -101,6 +101,16 @@ jobs:
           export BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }} "
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
+
+          if ${{ inputs.build_context }}; then          
+            echo "BUILD_CONTEXT=${{ inputs.build_context }}" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_APPEND=${{ inputs.build_context }}/" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_PREPEND=/${{ inputs.build_context }}" >>$GITHUB_OUTPUT
+          else
+            echo "BUILD_CONTEXT=''" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_APPEND=''" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_PREPEND=''" >>$GITHUB_OUTPUT
+          fi
           
         
       - name: Get Environment Name
@@ -295,6 +305,7 @@ jobs:
         run: |
           ls -lha .
           ls -lha ${{ inputs.build_context }}/
+          ls -lha $BUILD_CONTEXT_APPEND
     
       - name: Restore composer.lock cache
         id: cache-composer-lock
