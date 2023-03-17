@@ -105,11 +105,13 @@ jobs:
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
 
-          if [ ! -z ${{ inputs.build_context }} ]; then          
+          if [ ! -z ${{ inputs.build_context }} ]; then
+            echo "BUILD CONTEXT YES"
             echo "BUILD_CONTEXT=${{ inputs.build_context }}" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_APPEND=${{ inputs.build_context }}/" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_PREPEND=/${{ inputs.build_context }}" >>$GITHUB_OUTPUT
           else
+            echo "BUILD CONTEXT NO"          
             echo "BUILD_CONTEXT=''" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_APPEND=''" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_PREPEND=''" >>$GITHUB_OUTPUT
