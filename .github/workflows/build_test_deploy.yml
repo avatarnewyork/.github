@@ -31,7 +31,7 @@ on:
         description: 'path to docker build context.  Default to project'
         required: false
         type: string
-        default: 'project'
+        default: ''
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -422,11 +422,11 @@ jobs:
             fi
             if [[ ! -f project/.docker-build/bootstrap.sh ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/.docker-build/bootstrap.sh
-              cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" ${{ inputs.build_context }}/.docker-build/bootstrap.sh              
+              cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/${{ inputs.build_context }}/.docker-build/bootstrap.sh              
             fi
             if [[ ! -f project/.docker-build/.dockerignore ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/.docker-build/.dockerignore
-              cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" ${{ inputs.build_context }}/.dockerignore
+              cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/${{ inputs.build_context }}/.dockerignore
             fi
           else          
             cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
@@ -445,7 +445,7 @@ jobs:
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
             --build-arg BUILD_VERSION=${{ inputs.build_version }} \
             ${{ needs.set-environment-params.outputs.custom_build_args }} -t builder \
-            --file=project/.docker-build/Dockerfile ${{ inputs.build_context }}
+            --file=project/.docker-build/Dockerfile project/${{ inputs.build_context }}
           docker save builder | gzip > builder.tar.gz
         
       - name: Build and tag Amazon ECR Image
@@ -469,7 +469,7 @@ jobs:
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
             --build-arg PHP_VERSION=${{ inputs.php_version }} \
             --build-arg BUILD_VERSION=${{ inputs.build_version }} \
-            ${{ needs.set-environment-params.outputs.custom_build_args }} --file=project/.docker-build/Dockerfile ${{ inputs.build_context }}
+            ${{ needs.set-environment-params.outputs.custom_build_args }} --file=project/.docker-build/Dockerfile project/${{ inputs.build_context }}
 
 
       - name: Push to Amazon ECR
