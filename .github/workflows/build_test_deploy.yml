@@ -422,9 +422,11 @@ jobs:
             fi
             if [[ ! -f project/.docker-build/bootstrap.sh ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/.docker-build/bootstrap.sh
+              cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" ${{ inputs.build_context }}/.docker-build/bootstrap.sh              
             fi
             if [[ ! -f project/.docker-build/.dockerignore ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/.docker-build/.dockerignore
+              cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" ${{ inputs.build_context }}/.dockerignore
             fi
           else          
             cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
