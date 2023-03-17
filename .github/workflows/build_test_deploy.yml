@@ -306,10 +306,10 @@ jobs:
 
       - name: DEBUG composer.lock
         run: |
-          echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.platform }}"
+          echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_contex }}"t_append
           ls -lha .
           ls -lha ${{ inputs.build_context }}/
-          ls -lha ${{ needs.set-environment-params.outputs.platform }}
+          ls -lha ${{ needs.set-environment-params.outputs.build_context_append }}
     
       - name: Restore composer.lock cache
         id: cache-composer-lock
