@@ -63,6 +63,9 @@ jobs:
       ami_id: ${{ steps.set-envs.outputs.AMI_ID }}
       secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}
       platform: ${{ steps.set-platform.outputs.PLATFORM }}
+      build_context: ${{ steps.set-platform.outputs.BUILD_CONTEXT }}
+      build_context_append: ${{ steps.set-platform.outputs.BUILD_CONTEXT_APPEND }}
+      build_context_prepend: ${{ steps.set-platform.outputs.BUILD_CONTEXT_PREPEND }}
       custom_build_args: ${{ steps.set-custom-build-args.outputs.BUILD_ARGS }}
     steps:
       - name: notify start
@@ -303,9 +306,10 @@ jobs:
 
       - name: DEBUG composer.lock
         run: |
+          echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.platform }}"
           ls -lha .
           ls -lha ${{ inputs.build_context }}/
-          ls -lha $BUILD_CONTEXT_APPEND
+          ls -lha ${{ needs.set-environment-params.outputs.platform }}
     
       - name: Restore composer.lock cache
         id: cache-composer-lock
