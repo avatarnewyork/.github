@@ -308,6 +308,7 @@ jobs:
 
       - name: DEBUG composer.lock
         run: |
+          env
           if [ ! -z ${{ inputs.build_context }} ]; then
             echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_context_append }}"
             ls -lha .
