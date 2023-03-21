@@ -331,7 +331,7 @@ jobs:
         id: copy-composer-lock-cache
         if: |
           steps.cache-composer-lock.outputs.cache-hit == false &&
-          hashFiles("${{ needs.set-environment-params.outputs.build_context_append }}composer.lock") 
+          hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.lock'))
         run: |
           echo "not cached" > composer.nocache
           cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
@@ -339,7 +339,7 @@ jobs:
       - uses: symfonycorp/security-checker-action@v3
         id: run-sec-check
         if: |
-          hashFiles("${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock")           
+          hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock'))        
         with:
           disable-exit-code: 1
           format: json
