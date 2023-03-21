@@ -323,9 +323,9 @@ jobs:
           cache-version: v1
         with:
           path: "${{ needs.set-environment-params.outputs.build_context_append }}composer.lock"
-          key: ${{ env.cache-version }}-${{ hashFiles("${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock") }}
+          key: ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
           restore-keys: |
-            ${{ env.cache-version }}-${{ hashFiles("${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock") }}
+            ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
             
       - name: Copy composer.lock to cache
         id: copy-composer-lock-cache
