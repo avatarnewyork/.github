@@ -63,9 +63,9 @@ jobs:
       ami_id: ${{ steps.set-envs.outputs.AMI_ID }}
       secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}
       platform: ${{ steps.set-platform.outputs.PLATFORM }}
-      build_context: ${{ steps.set-platform.outputs.BUILD_CONTEXT }}
-      build_context_append: ${{ steps.set-platform.outputs.BUILD_CONTEXT_APPEND }}
-      build_context_prepend: ${{ steps.set-platform.outputs.BUILD_CONTEXT_PREPEND }}
+      build_context: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT }}
+      build_context_append: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT_APPEND }}
+      build_context_prepend: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT_PREPEND }}
       custom_build_args: ${{ steps.set-custom-build-args.outputs.BUILD_ARGS }}
     steps:
       - name: notify start
@@ -306,8 +306,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: DEBUG composer.lock
-        run: |
+      #- name: DEBUG composer.lock
+      #  run: |
+          #if [ ! -z ${{ inputs.build_context }} ]; then
+            
+          
           echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_contex }}"
           ls -lha .
           ls -lha ${{ inputs.build_context }}/
