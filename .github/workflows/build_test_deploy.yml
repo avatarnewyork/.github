@@ -306,15 +306,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      #- name: DEBUG composer.lock
-      #  run: |
-          #if [ ! -z ${{ inputs.build_context }} ]; then
-            
-          
-          echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_contex }}"
-          ls -lha .
-          ls -lha ${{ inputs.build_context }}/
-          ls -lha ${{ needs.set-environment-params.outputs.build_context_append }}
+      - name: DEBUG composer.lock
+        run: |
+          if [ ! -z ${{ inputs.build_context }} ]; then
+            echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_contex }}"
+            ls -lha .
+            ls -lha ${{ inputs.build_context }}/
+            ls -lha ${{ needs.set-environment-params.outputs.build_context_append }}
+          fi
     
       - name: Restore composer.lock cache
         id: cache-composer-lock
