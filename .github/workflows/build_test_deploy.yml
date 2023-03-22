@@ -472,6 +472,7 @@ jobs:
           else
             echo "DEBUG: project/.docker-build doesn't exists!"          
             cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
+            cp -a ".docker-build/${APP_PLATFORM}" project/${{ needs.set-environment-params.outputs.build_context_append }}.docker-build            
             ls -lha project/.docker-build            
           fi
           
