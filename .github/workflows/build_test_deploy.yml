@@ -305,17 +305,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: DEBUG composer.lock
-        run: |
-          env
-          if [ ! -z ${{ inputs.build_context }} ]; then
-            echo "BUILD_CONTEXT_APPEND: ${{ needs.set-environment-params.outputs.build_context_append }}"
-            ls -lha .
-            ls -lha ${{ inputs.build_context }}/
-            ls -lha ${{ needs.set-environment-params.outputs.build_context_append }}
-          fi
     
+      # - name: Restore composer.lock cache
+      #   id: cache-composer-lock
+      #   uses: actions/cache@v3
+      #   env:
+      #     cache-version: v1
+      #   with:
+      #     path: "${{ needs.set-environment-params.outputs.build_context_append }}composer.lock"
+      #     key: ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
+      #     restore-keys: |
+      #       ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
+
       - name: Restore composer.lock cache
         id: cache-composer-lock
         uses: actions/cache@v3
@@ -323,18 +324,18 @@ jobs:
           cache-version: v1
         with:
           path: "${{ needs.set-environment-params.outputs.build_context_append }}composer.lock"
-          key: ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
+          key: ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
+            ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
             
-      - name: Copy composer.lock to cache
-        id: copy-composer-lock-cache
-        if: |
-          steps.cache-composer-lock.outputs.cache-hit == false &&
-          hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.lock'))
-        run: |
-          echo "not cached" > composer.nocache
-          cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
+      # - name: Copy composer.lock to cache
+      #   id: copy-composer-lock-cache
+      #   if: |
+      #     steps.cache-composer-lock.outputs.cache-hit == false &&
+      #     hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.lock'))
+      #   run: |
+      #     echo "not cached" > composer.nocache
+      #     cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
 
       #- uses: symfonycorp/security-checker-action@v3
       #  id: run-sec-check
@@ -347,7 +348,7 @@ jobs:
       - uses: symfonycorp/security-checker-action@v4
         id: run-sec-check
         with:
-          lock: ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
+          lock: ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock
           disable-exit-code: 1
           format: json      
           
