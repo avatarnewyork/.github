@@ -452,6 +452,7 @@ jobs:
           #echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"
           # DOC: Allow for overrides if the .docker-build dir and associated files exist
           if [[ -d project/.docker-build ]]; then
+            echo "DEBUG: project/.docker-build exists!"
             if [[ ! -f project/.docker-build/Dockerfile ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/Dockerfile" project/.docker-build/Dockerfile
             fi
@@ -468,9 +469,11 @@ jobs:
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/.docker-build/.dockerignore
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/${{ inputs.build_context }}/.dockerignore
             fi
-          else          
+          else
+            echo "DEBUG: project/.docker-build doesn't exists!"          
             cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
           fi
+          
           
       - name: Builder Image Build
         if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}        
