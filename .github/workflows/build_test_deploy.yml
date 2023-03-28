@@ -63,6 +63,9 @@ jobs:
       ami_id: ${{ steps.set-envs.outputs.AMI_ID }}
       secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}
       platform: ${{ steps.set-platform.outputs.PLATFORM }}
+      build_context: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT }}
+      build_context_append: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT_APPEND }}
+      build_context_prepend: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT_PREPEND }}
       custom_build_args: ${{ steps.set-custom-build-args.outputs.BUILD_ARGS }}
     steps:
       - name: notify start
@@ -101,6 +104,18 @@ jobs:
           export BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }} "
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
+
+          if [ ! -z ${{ inputs.build_context }} ]; then
+            echo "BUILD CONTEXT YES"
+            echo "BUILD_CONTEXT=${{ inputs.build_context }}" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_APPEND=${{ inputs.build_context }}/" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_PREPEND=/${{ inputs.build_context }}" >>$GITHUB_OUTPUT
+          else
+            echo "BUILD CONTEXT NO"          
+            echo "BUILD_CONTEXT=''" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_APPEND=''" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_PREPEND=''" >>$GITHUB_OUTPUT
+          fi
           
         
       - name: Get Environment Name
@@ -289,35 +304,53 @@ jobs:
       needs.set-environment-params.outputs.platform == 'symfony'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2      
+        uses: actions/checkout@v2
     
+      # - name: Restore composer.lock cache
+      #   id: cache-composer-lock
+      #   uses: actions/cache@v3
+      #   env:
+      #     cache-version: v1
+      #   with:
+      #     path: "${{ needs.set-environment-params.outputs.build_context_append }}composer.lock"
+      #     key: ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
+      #     restore-keys: |
+      #       ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
+
       - name: Restore composer.lock cache
         id: cache-composer-lock
         uses: actions/cache@v3
         env:
           cache-version: v1
         with:
-          path: composer.lock
-          key: ${{ env.cache-version }}-${{ hashFiles('composer.cached.lock') }}
+          path: "${{ needs.set-environment-params.outputs.build_context_append }}composer.lock"
+          key: ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ env.cache-version }}-${{ hashFiles('composer.cached.lock') }}
+            ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
             
-      - name: Copy composer.lock to cache
-        id: copy-composer-lock-cache
-        if: |
-          steps.cache-composer-lock.outputs.cache-hit == false &&
-          hashFiles('composer.lock') 
-        run: |
-          echo "not cached" > composer.nocache
-          cp composer.lock composer.cached.lock
+      # - name: Copy composer.lock to cache
+      #   id: copy-composer-lock-cache
+      #   if: |
+      #     steps.cache-composer-lock.outputs.cache-hit == false &&
+      #     hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.lock'))
+      #   run: |
+      #     echo "not cached" > composer.nocache
+      #     cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
 
-      - uses: symfonycorp/security-checker-action@v3
+      #- uses: symfonycorp/security-checker-action@v3
+      #  id: run-sec-check
+      #  if: |
+      #  #hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock'))          
+      #  with:
+      #    disable-exit-code: 1
+      #    format: json
+
+      - uses: symfonycorp/security-checker-action@v4
         id: run-sec-check
-        if: |
-          hashFiles('composer.cached.lock')           
         with:
+          lock: ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock
           disable-exit-code: 1
-          format: json
+          format: json      
           
       - name: Display the vulnerabilities as JSON
         run: |
@@ -326,7 +359,7 @@ jobs:
           then
             exit 1;
           fi
-          cp composer.lock composer.cached.lock
+          cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
                       
       - name: Archive Security Check Results
         if: failure()
@@ -390,17 +423,19 @@ jobs:
         with:
           path: 'project'
           
-      - name: Cache Builer Image
-        id: cache-builder-image
-        uses: actions/cache@v3
-        env:
-          cache-version: v7
-        with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS
-          path: builder.tar.gz
-          key: ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
-          restore-keys: |
-            ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
+      # - name: Cache Builer Image
+      #   id: cache-builder-image
+      #   uses: actions/cache@v3
+      #   env:
+      #     cache-version: v7
+      #   with:
+      #     # npm cache files are stored in `~/.npm` on Linux/macOS
+      #     path: builder.tar.gz
+      #     #key: ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
+      #     key: ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}{2}','project/', needs.set-environment-params.outputs.build_context_append,'composer.lock'), '.docker-build/Dockerfile') }}
+      #     restore-keys: |
+      #       ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}{2}','project/', needs.set-environment-params.outputs.build_context_append,'composer.lock'), '.docker-build/Dockerfile') }}
+      #     #${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
 
       - name: copy platform specific build files
         id: copy-platform-build-files
@@ -417,9 +452,15 @@ jobs:
           #echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"
           # DOC: Allow for overrides if the .docker-build dir and associated files exist
           if [[ -d project/.docker-build ]]; then
+            echo "DEBUG: project/.docker-build exists!"
             if [[ ! -f project/.docker-build/Dockerfile ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/Dockerfile" project/.docker-build/Dockerfile
             fi
+            
+            echo "DEBUGGING"
+            ls -lha .
+            ls -lha ${{ inputs.build_context }}/
+            
             if [[ ! -f project/.docker-build/bootstrap.sh ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/.docker-build/bootstrap.sh
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/${{ inputs.build_context }}/.docker-build/bootstrap.sh              
@@ -428,9 +469,13 @@ jobs:
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/.docker-build/.dockerignore
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/${{ inputs.build_context }}/.dockerignore
             fi
-          else          
+          else
+            echo "DEBUG: project/.docker-build doesn't exists!"          
             cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
+            cp -a ".docker-build/${APP_PLATFORM}" project/${{ needs.set-environment-params.outputs.build_context_append }}.docker-build            
+            ls -lha project/.docker-build            
           fi
+          
           
       - name: Builder Image Build
         if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}        
