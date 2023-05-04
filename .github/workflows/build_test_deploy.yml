@@ -37,6 +37,11 @@ on:
         required: false
         type: string
         default: ''
+      php_memory_limit:
+        description: 'php memory limit override'
+        required: false
+        type: string
+        default: ''
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -104,16 +109,19 @@ jobs:
 
       - name: set custom build args
         id: set-custom-build-args
-        if: inputs.web_root || inputs.cache_control_seconds
+        if: inputs.web_root || inputs.cache_control_seconds || inputs.php_memory_limit
         run: |
           if [ ! -z ${{ inputs.cache_control_seconds }} ]; then
             export CACHE_CONTROL_SECONDS_BUILD_ARGS=" --build-arg CACHE_CONTROL_SECONDS=${{ inputs.cache_control_seconds }}";
+          fi
+          if [ ! -z ${{ inputs.php_memory_limit }} ]; then
+            export PHP_MEMORY_LIMIT_BUILD_ARGS=" --build-arg PHP_MEMORY_LIMIT=${{ inputs.php_memory_limit }}";
           fi
           if [ ! -z ${{ inputs.web_root }} ]; then
             export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.webroot }}";
           fi
           
-          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS"
+          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS"
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
 
