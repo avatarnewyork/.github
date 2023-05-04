@@ -107,9 +107,13 @@ jobs:
         if: inputs.web_root || inputs.cache_control_seconds
         run: |
           if [ ! -z ${{ inputs.cache_control_seconds }} ]; then
-            export CACHE_CONTROL_SECONDS=" --build-arg CACHE_CONTROL_SECONDS=${{ inputs.cache_control_seconds }}";
+            export CACHE_CONTROL_SECONDS_BUILD_ARGS=" --build-arg CACHE_CONTROL_SECONDS=${{ inputs.cache_control_seconds }}";
           fi
-          export BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }} $CACHE_CONTROL_SECONDS"
+          if [ ! -z ${{ inputs.web_root }} ]; then
+            export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.webroot }}";
+          fi
+          
+          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS"
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
 
