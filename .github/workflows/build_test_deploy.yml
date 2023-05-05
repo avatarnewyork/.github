@@ -118,7 +118,7 @@ jobs:
             export PHP_MEMORY_LIMIT_BUILD_ARGS=" --build-arg PHP_MEMORY_LIMIT=${{ inputs.php_memory_limit }}";
           fi
           if [ ! -z ${{ inputs.web_root }} ]; then
-            export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.webroot }}";
+            export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }}";
           fi
           
           export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS"
