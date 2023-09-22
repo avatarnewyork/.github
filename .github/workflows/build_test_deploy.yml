@@ -42,6 +42,11 @@ on:
         required: false
         type: string
         default: ''
+      ecs_service_instance_name_override:
+        description: 'used for feature branch/envs override'
+        required: false
+        type: string
+        default: ''        
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -148,8 +153,13 @@ jobs:
             #echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"
             echo "ENVIRONMENT_SHORT_NAME=stage" >>$GITHUB_OUTPUT          
             export AWS_REGION=`echo ${{ env.AWS_REGION_STAGE }} | gzip | base64 -w0`
+            if [[ ${{ inputs.ecs_service_instance_name_override }} != '' ]]; then
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }}-stage" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }} | gzip | base64 -w0`
+            else
+            export ECS_SERVICE_NAME=`echo "${{ inputs.ecs_service_instance_name_override }}-stage" | gzip | base64 -w0`
+            export ECS_SERVICE_INSTANCE_NAME=`echo ${{ inputs.ecs_service_instance_name_override }} | gzip | base64 -w0`
+            fi            
             export AMI_ID=`echo ${{ env.AWS_AMI_ID_STAGE }} | gzip | base64 -w0`
           else
             echo "ENVIRONMENT_NAME=production"          
