@@ -46,7 +46,13 @@ on:
         description: 'used for feature branch/envs override'
         required: false
         type: string
-        default: 'none'        
+        default: 'none'
+      docker_build_args:
+        description: 'custom docker build args'
+        required: false
+        type: string
+        default: ''
+        
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -125,8 +131,12 @@ jobs:
           if [ ! -z ${{ inputs.web_root }} ]; then
             export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }}";
           fi
+          if [ ! -z ${{ inputs.docker_build_args }} ]; then
+            export DOCKER_BUILD_ARGS=" ${{ inputs.docker_build_args }} ";
+          fi
           
-          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS"
+          
+          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS $DOCKER_BUILD_ARGS"
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
 
