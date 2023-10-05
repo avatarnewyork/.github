@@ -42,6 +42,17 @@ on:
         required: false
         type: string
         default: ''
+      ecs_service_instance_name_override:
+        description: 'used for feature branch/envs override'
+        required: false
+        type: string
+        default: 'none'
+      docker_build_args:
+        description: 'custom docker build args'
+        required: false
+        type: string
+        default: ''
+        
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -120,8 +131,12 @@ jobs:
           if [ ! -z ${{ inputs.web_root }} ]; then
             export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }}";
           fi
+          if [ ! -z ${{ inputs.docker_build_args }} ]; then
+            export DOCKER_BUILD_ARGS=" ${{ inputs.docker_build_args }} ";
+          fi
           
-          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS"
+          
+          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS $DOCKER_BUILD_ARGS"
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
 
@@ -148,8 +163,13 @@ jobs:
             #echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"
             echo "ENVIRONMENT_SHORT_NAME=stage" >>$GITHUB_OUTPUT          
             export AWS_REGION=`echo ${{ env.AWS_REGION_STAGE }} | gzip | base64 -w0`
+            if [[ "${{ inputs.ecs_service_instance_name_override }}" == 'none' ]]; then
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }}-stage" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }} | gzip | base64 -w0`
+            else
+            export ECS_SERVICE_NAME=`echo "${{ inputs.ecs_service_instance_name_override }}-stage" | gzip | base64 -w0`
+            export ECS_SERVICE_INSTANCE_NAME=`echo ${{ inputs.ecs_service_instance_name_override }} | gzip | base64 -w0`
+            fi            
             export AMI_ID=`echo ${{ env.AWS_AMI_ID_STAGE }} | gzip | base64 -w0`
           else
             echo "ENVIRONMENT_NAME=production"          
