@@ -336,7 +336,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ env.ECR_NUMBER }}        
+          registries: "${{ env.ECR_NUMBER }},001650231941"        
         
       - uses: actions/checkout@v3
         with:
