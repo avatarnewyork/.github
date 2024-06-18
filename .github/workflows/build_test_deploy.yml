@@ -445,9 +445,18 @@ jobs:
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           mask-aws-account-id: false
 
+      - name: Extract ECR Account Number
+        id: extract-ecr-account
+        run: |
+          ECR_ACCOUNT="${{ env.ECR_ACCOUNT }}"
+          ECR_NUMBER=$(echo $ECR_ACCOUNT | grep -oP '^\d+')
+          echo "ECR_NUMBER=$ECR_NUMBER" >> $GITHUB_ENV
+          
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: "${{ env.ECR_NUMBER }},001650231941"        
 
       - uses: actions/checkout@v3
         with:
