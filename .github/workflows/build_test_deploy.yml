@@ -7,52 +7,6 @@ name: build-test-deploy
 
 on:
   workflow_call:
-    inputs:
-      php_version:
-        description: 'PHP Version'
-        default: '8.0.10'
-        required: false
-        type: string    
-      build_version:
-        description: 'Apache Build Version'
-        default: 'latest'
-        required: false
-        type: string
-      web_root:
-        description: 'Override default docroot'
-        required: false
-        type: string
-      skip_test:
-        description: 'Skip GI tests'
-        required: false
-        type: string
-        default: '0'
-      build_context:
-        description: 'path to docker build context.  Default to project'
-        required: false
-        type: string
-        default: ''
-      cache_control_seconds:
-        description: 'set cache-control header to seconds'
-        required: false
-        type: string
-        default: ''
-      php_memory_limit:
-        description: 'php memory limit override'
-        required: false
-        type: string
-        default: ''
-      ecs_service_instance_name_override:
-        description: 'used for feature branch/envs override'
-        required: false
-        type: string
-        default: 'none'
-      docker_build_args:
-        description: 'custom docker build args'
-        required: false
-        type: string
-        default: ''
-        
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
         required: true  
@@ -63,6 +17,8 @@ on:
       GHOST_SUITE_ID:
         required: true
       SEC_CHECK_DISABLED:
+        required: false
+      SECRETS_NAME_ARN:
         required: false
   
 # Required Secrets:
@@ -84,10 +40,6 @@ jobs:
       ami_id: ${{ steps.set-envs.outputs.AMI_ID }}
       secrets_enc: ${{ steps.enc-sec.outputs.SECRETS_ENC }}
       platform: ${{ steps.set-platform.outputs.PLATFORM }}
-      build_context: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT }}
-      build_context_append: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT_APPEND }}
-      build_context_prepend: ${{ steps.set-custom-build-args.outputs.BUILD_CONTEXT_PREPEND }}
-      custom_build_args: ${{ steps.set-custom-build-args.outputs.BUILD_ARGS }}
     steps:
       - name: notify start
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -106,91 +58,39 @@ jobs:
       - name: set-platform
         id: set-platform
         run: |          
-          if ls project/*/authorize.php 1> /dev/null 2>&1; then
-            export APP_PLATFORM=drupal7
-          elif [[ -d "project/web/modules" ]]; then
+          if [[ -d "project/web/modules" ]]; then
             export APP_PLATFORM=drupal
           elif [[ -f "project/public/wp-settings.php" ]]; then
             export APP_PLATFORM=wordpress
           else
             export APP_PLATFORM=symfony
           fi
-          #echo "::set-output name=PLATFORM::$APP_PLATFORM"
-          echo "PLATFORM=$APP_PLATFORM" >>$GITHUB_OUTPUT
-
-      - name: set custom build args
-        id: set-custom-build-args
-        if: inputs.web_root || inputs.cache_control_seconds || inputs.php_memory_limit
-        run: |
-          if [ ! -z ${{ inputs.cache_control_seconds }} ]; then
-            export CACHE_CONTROL_SECONDS_BUILD_ARGS=" --build-arg CACHE_CONTROL_SECONDS=${{ inputs.cache_control_seconds }}";
-          fi
-          if [ ! -z ${{ inputs.php_memory_limit }} ]; then
-            export PHP_MEMORY_LIMIT_BUILD_ARGS=" --build-arg PHP_MEMORY_LIMIT=${{ inputs.php_memory_limit }}";
-          fi
-          if [ ! -z ${{ inputs.web_root }} ]; then
-            export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }}";
-          fi
-          if [ ! -z ${{ inputs.docker_build_args }} ]; then
-            export DOCKER_BUILD_ARGS=" ${{ inputs.docker_build_args }} ";
-          fi
+          echo "::set-output name=PLATFORM::$APP_PLATFORM"
           
-          
-          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS $DOCKER_BUILD_ARGS"
-          #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
-          echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
-
-          if [ ! -z ${{ inputs.build_context }} ]; then
-            echo "BUILD CONTEXT YES"
-            echo "BUILD_CONTEXT=${{ inputs.build_context }}" >>$GITHUB_OUTPUT
-            echo "BUILD_CONTEXT_APPEND=${{ inputs.build_context }}/" >>$GITHUB_OUTPUT
-            echo "BUILD_CONTEXT_PREPEND=/${{ inputs.build_context }}" >>$GITHUB_OUTPUT
-          else
-            echo "BUILD CONTEXT NO"          
-            echo "BUILD_CONTEXT=''" >>$GITHUB_OUTPUT
-            echo "BUILD_CONTEXT_APPEND=''" >>$GITHUB_OUTPUT
-            echo "BUILD_CONTEXT_PREPEND=''" >>$GITHUB_OUTPUT
-          fi
-          
-        
       - name: Get Environment Name
         id: set-envs
         run: |          
           if [[ ${{ github.ref_type }} == 'branch' ]]; then
             echo "ENVIRONMENT_NAME=stage"
-            #echo "::set-output name=ENVIRONMENT_NAME::stage"
-            echo "ENVIRONMENT_NAME=stage" >>$GITHUB_OUTPUT          
-            #echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"
-            echo "ENVIRONMENT_SHORT_NAME=stage" >>$GITHUB_OUTPUT          
+            echo "::set-output name=ENVIRONMENT_NAME::stage"
+            echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"            
             export AWS_REGION=`echo ${{ env.AWS_REGION_STAGE }} | gzip | base64 -w0`
-            if [[ "${{ inputs.ecs_service_instance_name_override }}" == 'none' ]]; then
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }}-stage" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }} | gzip | base64 -w0`
-            else
-            export ECS_SERVICE_NAME=`echo "${{ inputs.ecs_service_instance_name_override }}-stage" | gzip | base64 -w0`
-            export ECS_SERVICE_INSTANCE_NAME=`echo ${{ inputs.ecs_service_instance_name_override }} | gzip | base64 -w0`
-            fi            
             export AMI_ID=`echo ${{ env.AWS_AMI_ID_STAGE }} | gzip | base64 -w0`
           else
             echo "ENVIRONMENT_NAME=production"          
-            #echo "::set-output name=ENVIRONMENT_NAME::production"
-            echo "ENVIRONMENT_NAME=production" >>$GITHUB_OUTPUT          
-            #echo "::set-output name=ENVIRONMENT_SHORT_NAME::prod"
-            echo "ENVIRONMENT_SHORT_NAME=prod" >>$GITHUB_OUTPUT          
+            echo "::set-output name=ENVIRONMENT_NAME::production"
+            echo "::set-output name=ENVIRONMENT_SHORT_NAME::prod"
             export AWS_REGION=`echo ${{ env.AWS_REGION_PROD }} | gzip | base64 -w0`                       
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }}-prod" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }} | gzip | base64 -w0`
             export AMI_ID=`echo ${{ env.AWS_AMI_ID_PROD }} | gzip | base64 -w0`            
           fi
-          #echo "::set-output name=AWS_REGION::$AWS_REGION"
-          echo "AWS_REGION=$AWS_REGION" >>$GITHUB_OUTPUT          
-          #echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
-          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >>$GITHUB_OUTPUT          
-          #echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"
-          echo "ECS_SERVICE_INSTANCE_NAME=$ECS_SERVICE_INSTANCE_NAME" >>$GITHUB_OUTPUT          
-          #echo "::set-output name=AMI_ID::$AMI_ID"
-          echo "AMI_ID=$AMI_ID" >>$GITHUB_OUTPUT
-          
+          echo "::set-output name=AWS_REGION::$AWS_REGION"          
+          echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
+          echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"
+          echo "::set-output name=AMI_ID::$AMI_ID"          
         env:
           ECS_SERVICE_INSTANCE_NAME_STAGE: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_STAGE }}
           ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}          
@@ -203,11 +103,10 @@ jobs:
       - name: decode vars
         id: decode-vars
         run: |
-          #echo "::set-output name=SECRETS_NAME::$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)"
-          echo "SECRETS_NAME=$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                              
-          #echo "::set-output name=AWS_REGION::$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)"          
-          echo "AWS_REGION=$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT
-
+          echo "::set-output name=SECRETS_NAME::$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)"
+          
+          echo "::set-output name=AWS_REGION::$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)"          
+          
       - name: Store ENV from AWS SecretManager
         uses: say8425/aws-secrets-manager-actions@v2
         with:
@@ -220,8 +119,8 @@ jobs:
       - name: set envs
         id: enc-sec
         run: |
-          export SECRETS_ENC=$(cat .env | gzip | base64 -w0)
-          echo "SECRETS_ENC=$SECRETS_ENC" >>$GITHUB_OUTPUT
+          export SECRETS_ENC=`cat .env | gzip | base64 -w0`
+          echo "::set-output name=SECRETS_ENC::$SECRETS_ENC"
 
       - name: notify load secrets failed
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -249,8 +148,7 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
-          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
           
       - name: decode secrets
         id: decode-secrets
@@ -299,8 +197,8 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
-          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                    
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+                
       - name: decode secrets
         id: decode-secrets
         run: |
@@ -344,53 +242,35 @@ jobs:
       needs.set-environment-params.outputs.platform == 'symfony'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2      
     
-      # - name: Restore composer.lock cache
-      #   id: cache-composer-lock
-      #   uses: actions/cache@v3
-      #   env:
-      #     cache-version: v1
-      #   with:
-      #     path: "${{ needs.set-environment-params.outputs.build_context_append }}composer.lock"
-      #     key: ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
-      #     restore-keys: |
-      #       ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock')) }}
-
       - name: Restore composer.lock cache
         id: cache-composer-lock
         uses: actions/cache@v3
         env:
           cache-version: v1
         with:
-          path: "${{ needs.set-environment-params.outputs.build_context_append }}composer.lock"
-          key: ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
+          path: composer.lock
+          key: ${{ env.cache-version }}-${{ hashFiles('composer.cached.lock') }}
           restore-keys: |
-            ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
+            ${{ env.cache-version }}-${{ hashFiles('composer.cached.lock') }}
             
-      # - name: Copy composer.lock to cache
-      #   id: copy-composer-lock-cache
-      #   if: |
-      #     steps.cache-composer-lock.outputs.cache-hit == false &&
-      #     hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.lock'))
-      #   run: |
-      #     echo "not cached" > composer.nocache
-      #     cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
+      - name: Copy composer.lock to cache
+        id: copy-composer-lock-cache
+        if: |
+          steps.cache-composer-lock.outputs.cache-hit == false &&
+          hashFiles('composer.lock') 
+        run: |
+          echo "not cached" > composer.nocache
+          cp composer.lock composer.cached.lock
 
-      #- uses: symfonycorp/security-checker-action@v3
-      #  id: run-sec-check
-      #  if: |
-      #  #hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock'))          
-      #  with:
-      #    disable-exit-code: 1
-      #    format: json
-
-      - uses: symfonycorp/security-checker-action@v4
+      - uses: symfonycorp/security-checker-action@v3
         id: run-sec-check
+        if: |
+          hashFiles('composer.cached.lock')           
         with:
-          lock: ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock
           disable-exit-code: 1
-          format: json      
+          format: json
           
       - name: Display the vulnerabilities as JSON
         run: |
@@ -399,7 +279,7 @@ jobs:
           then
             exit 1;
           fi
-          cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
+          cp composer.lock composer.cached.lock
                       
       - name: Archive Security Check Results
         if: failure()
@@ -445,10 +325,19 @@ jobs:
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           mask-aws-account-id: false
 
+      - name: Extract ECR Account Number
+        id: extract-ecr-account
+        run: |
+          ECR_ACCOUNT="${{ env.ECR_ACCOUNT }}"
+          ECR_NUMBER=$(echo $ECR_ACCOUNT | grep -oP '^\d+')
+          echo "ECR_NUMBER=$ECR_NUMBER" >> $GITHUB_ENV
+        
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
+        with:
+          registries: ${{ env.ECR_NUMBER }}        
+        
       - uses: actions/checkout@v3
         with:
           # Repository name with owner. For example, actions/checkout
@@ -463,59 +352,44 @@ jobs:
         with:
           path: 'project'
           
-      # - name: Cache Builer Image
-      #   id: cache-builder-image
-      #   uses: actions/cache@v3
-      #   env:
-      #     cache-version: v7
-      #   with:
-      #     # npm cache files are stored in `~/.npm` on Linux/macOS
-      #     path: builder.tar.gz
-      #     #key: ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
-      #     key: ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}{2}','project/', needs.set-environment-params.outputs.build_context_append,'composer.lock'), '.docker-build/Dockerfile') }}
-      #     restore-keys: |
-      #       ${{ env.cache-version }}-${{ hashFiles(format('{0}{1}{2}','project/', needs.set-environment-params.outputs.build_context_append,'composer.lock'), '.docker-build/Dockerfile') }}
-      #     #${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
+      - name: Cache Builer Image
+        id: cache-builder-image
+        uses: actions/cache@v3
+        env:
+          cache-version: v6
+        with:
+          # npm cache files are stored in `~/.npm` on Linux/macOS
+          path: builder.tar.gz
+          key: ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
+          restore-keys: |
+            ${{ env.cache-version }}-${{ hashFiles('project/composer.lock', '.docker-build/Dockerfile') }}
 
       - name: copy platform specific build files
         id: copy-platform-build-files
         run: |
-          #ls -lha
-          #if [[ -d "project/web/modules" ]]; then
-          #  export APP_PLATFORM=drupal
-          #elif [[ -f "project/public/wp-settings.php" ]]; then
-          #  export APP_PLATFORM=wordpress
-          #else
-          #  export APP_PLATFORM=symfony
-          #fi
-          export APP_PLATFORM=${{ needs.set-environment-params.outputs.platform }}
-          #echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"
+          ls -lha
+          if [[ -d "project/web/modules" ]]; then
+            export APP_PLATFORM=drupal
+          elif [[ -f "project/public/wp-settings.php" ]]; then
+            export APP_PLATFORM=wordpress
+          else
+            export APP_PLATFORM=symfony
+          fi
+          echo "::set-output name=APP_PLATFORM::$APP_PLATFORM"
           # DOC: Allow for overrides if the .docker-build dir and associated files exist
           if [[ -d project/.docker-build ]]; then
-            echo "DEBUG: project/.docker-build exists!"
             if [[ ! -f project/.docker-build/Dockerfile ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/Dockerfile" project/.docker-build/Dockerfile
             fi
-            
-            echo "DEBUGGING"
-            ls -lha .
-            ls -lha ${{ inputs.build_context }}/
-            
             if [[ ! -f project/.docker-build/bootstrap.sh ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/.docker-build/bootstrap.sh
-              cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/${{ inputs.build_context }}/.docker-build/bootstrap.sh              
             fi
             if [[ ! -f project/.docker-build/.dockerignore ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/.docker-build/.dockerignore
-              cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/${{ inputs.build_context }}/.dockerignore
             fi
-          else
-            echo "DEBUG: project/.docker-build doesn't exists!"          
+          else          
             cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
-            cp -a ".docker-build/${APP_PLATFORM}" project/${{ needs.set-environment-params.outputs.build_context_append }}.docker-build            
-            ls -lha project/.docker-build            
           fi
-          
           
       - name: Builder Image Build
         if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}        
@@ -523,14 +397,12 @@ jobs:
         #continue-on-error: true
         run: |
           set -x
-          #  --build-arg BUILDKIT_INLINE_CACHE=1
+          #  --build-arg BUILDKIT_INLINE_CACHE=1 
           docker build --compress --target=builder \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
-            --build-arg PHP_VERSION=${{ inputs.php_version }} \
-            --build-arg BUILD_VERSION=${{ inputs.build_version }} \
-            ${{ needs.set-environment-params.outputs.custom_build_args }} -t builder \
-            --file=project/.docker-build/Dockerfile project/${{ inputs.build_context }}
+            -t builder \
+            --file=project/.docker-build/Dockerfile project
           docker save builder | gzip > builder.tar.gz
         
       - name: Build and tag Amazon ECR Image
@@ -552,9 +424,7 @@ jobs:
             -t $ECR_REGISTRY/$ECR_REPOSITORY:test \
             --build-arg INFRASTRUCTURE=${{ env.ENVIRONMENT_SHORT_NAME }} \
             --build-arg REGION=${{ env.AWS_DEFAULT_REGION }} \
-            --build-arg PHP_VERSION=${{ inputs.php_version }} \
-            --build-arg BUILD_VERSION=${{ inputs.build_version }} \
-            ${{ needs.set-environment-params.outputs.custom_build_args }} --file=project/.docker-build/Dockerfile project/${{ inputs.build_context }}
+            --file=project/.docker-build/Dockerfile project            
 
 
       - name: Push to Amazon ECR
@@ -567,8 +437,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:test          
-          #echo "::set-output name=IMAGE_URI::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >>$GITHUB_OUTPUT                    
+          echo "::set-output name=IMAGE_URI::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           
       - name: notify build failed
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -589,10 +458,7 @@ jobs:
       - set-environment-params
       #- load-secrets
       - start-runner2      
-    if: |
-      always() &&
-      github.ref == 'refs/heads/stage' &&
-      inputs.skip_test == '0'
+    if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
@@ -680,11 +546,7 @@ jobs:
       - set-environment-params
       - build
       - start-runner1      
-    if: |
-      always() &&
-      github.ref == 'refs/heads/stage' &&
-      inputs.skip_test == '0' &&
-      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
+    if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
@@ -712,8 +574,7 @@ jobs:
           
           # register task def
           export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
-          #echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
-          echo "ECS_SERVICE_TASK_DEF_ARN=$ECS_SERVICE_TASK_DEF_ARN" >>$GITHUB_OUTPUT
+          echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
           
       - name: spin up test service with test image (~3m)
         run: |
@@ -737,17 +598,13 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
     needs:
+      - sec-check      
       #- load-secrets
       - set-environment-params
       - test-service-deploy
       - start-runner1
       - load-test-database
-    if: |
-      always() &&
-      github.ref == 'refs/heads/stage' &&
-      inputs.skip_test == '0' &&      
-      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
-    
+    if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
@@ -812,12 +669,8 @@ jobs:
       - test-service-deploy
       - set-environment-params      
       #- load-secrets
-      - start-runner2
-    if: |
-      always() &&
-      github.ref == 'refs/heads/stage' &&
-      inputs.skip_test == '0' &&      
-      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')            
+      - start-runner2      
+    if: github.ref == 'refs/heads/stage'
     #if: startsWith(github.event.ref, 'refs/tags/v')    
     steps:
       - name: decode secrets
@@ -892,7 +745,7 @@ jobs:
       (needs.test-run.result == 'success' || needs.test-run.result == 'skipped') &&
       (needs.load-test-database.result == 'success' || needs.load-test-database.result == 'skipped') &&      
       (needs.start-runner2.result == 'success' || needs.start-runner2.result == 'skipped') &&      
-      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped') &&
+      (needs.sec-check.result == 'success') &&
       (needs.build.result == 'success') 
     steps:
       - name: decode secrets
@@ -923,8 +776,7 @@ jobs:
           
           # register task def
           export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
-          #echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
-          echo "ECS_SERVICE_TASK_DEF_ARN=$ECS_SERVICE_TASK_DEF_ARN" >>$GITHUB_OUTPUT                    
+          echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
           
       - name: spin up service with image (~3m)
         run: |
@@ -1037,8 +889,7 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"
-          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                    
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
           
       - name: decode secrets
         id: decode-secrets
@@ -1074,9 +925,8 @@ jobs:
       - name: decode-vars
         id: decode-vars
         run: |
-          #echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
-          echo "AMI_ID=$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                    
-
+          echo "::set-output name=AMI_ID::$(echo ${{ needs.set-environment-params.outputs.ami_id }} | base64 -d | gunzip)"          
+          
       - name: decode secrets
         id: decode-secrets
         run: |
