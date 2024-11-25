@@ -738,7 +738,7 @@ jobs:
       #  uses: actions/checkout@v2                  
           
       - name: Run Ghost Inspector Suite
-        uses: DATADEER/run-ghost-inspector-suite-action@v1.2
+        uses: DATADEER/run-ghost-inspector-suite-action@v1.1
         with:
           suiteID: ${{ secrets.GHOST_SUITE_ID }}
           startURL: "https://test.${{ env.CLIENT_NAME }}.avatarnewyork.site/"
