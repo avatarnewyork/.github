@@ -304,7 +304,7 @@ jobs:
                       
       - name: Archive Security Check Results
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: failed security check results
           path: composer_security_check_results.json
@@ -695,7 +695,7 @@ jobs:
           aws ecs --region=${{ env.AWS_DEFAULT_REGION }} wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks "$TASK_BOOTSTRAP_ARN"
           
       - name: Archive Bootstrap Task
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Upload Bootstrap Task
           path: task_bootstrap_test.json
@@ -753,7 +753,7 @@ jobs:
 
 
       #- name: Archive Test Results Artifacts 
-      #  uses: actions/upload-artifact@v3
+      #  uses: actions/upload-artifact@v4
       #  with:
       #    name: Upload GI Junit Results
       #    path: |
@@ -861,7 +861,7 @@ jobs:
           aws ecs --region=${{ env.AWS_DEFAULT_REGION }} wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks "$TASK_BOOTSTRAP_ARN"
           
       - name: Archive Bootstrap Task
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Upload Bootstrap Task
           path: task_bootstrap.json
