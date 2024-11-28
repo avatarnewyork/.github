@@ -307,7 +307,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: failed security check results
-          path: composer_security_check_results.json
+          path: composer_security_check_results.${{ github.run_id }}.json
                   
       - name: notify composer.lock security check failed
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -698,7 +698,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Upload Bootstrap Task
-          path: task_bootstrap_test.json
+          path: task_bootstrap_test.${{ github.run_id }}.json
 
       - name: notify test-service-deploy
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -864,7 +864,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Upload Bootstrap Task
-          path: task_bootstrap.json
+          path: task_bootstrap.${{ github.run_id }}.json
 
       - name: notify deploy success
         uses: someimportantcompany/github-actions-slack-message@v1
