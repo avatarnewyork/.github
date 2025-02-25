@@ -203,9 +203,8 @@ jobs:
       - name: decode vars
         id: decode-vars
         run: |
-          #echo "::set-output name=SECRETS_NAME::$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)"
-          echo "SECRETS_NAME=$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT                              
-          #echo "::set-output name=AWS_REGION::$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)"          
+          #echo "SECRETS_NAME=$(echo ${{ steps.set-envs.outputs.ecs_service_name }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT
+          echo "SECRETS_NAME=$(echo ${{ steps.set-envs.outputs.ECS_SERVICE_NAME }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT
           echo "AWS_REGION=$(echo ${{ steps.set-envs.outputs.aws_region }} | base64 -d | gunzip)" >>$GITHUB_OUTPUT
 
       - name: Store ENV from AWS SecretManager
