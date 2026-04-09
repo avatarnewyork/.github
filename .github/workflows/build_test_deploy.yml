@@ -284,7 +284,7 @@ jobs:
       #    disable-exit-code: 1
       #    format: json
 
-      - uses: symfonycorp/security-checker-action@v4
+      - uses: symfonycorp/security-checker-action@v5
         id: run-sec-check
         with:
           lock: ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock
