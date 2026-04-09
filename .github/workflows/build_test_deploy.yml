@@ -120,7 +120,7 @@ jobs:
 
       - name: set custom build args
         id: set-custom-build-args
-        if: inputs.web_root || inputs.cache_control_seconds || inputs.php_memory_limit
+        if: inputs.web_root || inputs.cache_control_seconds || inputs.php_memory_limit || inputs.docker_build_args
         run: |
           if [ ! -z ${{ inputs.cache_control_seconds }} ]; then
             export CACHE_CONTROL_SECONDS_BUILD_ARGS=" --build-arg CACHE_CONTROL_SECONDS=${{ inputs.cache_control_seconds }}";
