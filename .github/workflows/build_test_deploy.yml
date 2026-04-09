@@ -147,8 +147,8 @@ jobs:
           else
             echo "BUILD CONTEXT NO"
             echo "BUILD_CONTEXT=" >> "$GITHUB_OUTPUT"
-            echo "BUILD_CONTEXT_APPEND=''" >>$GITHUB_OUTPUT
-            echo "BUILD_CONTEXT_PREPEND=''" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_APPEND=" >>$GITHUB_OUTPUT
+            echo "BUILD_CONTEXT_PREPEND=" >>$GITHUB_OUTPUT
           fi
           
         
