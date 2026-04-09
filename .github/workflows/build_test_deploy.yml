@@ -122,21 +122,20 @@ jobs:
         id: set-custom-build-args
         if: inputs.web_root || inputs.cache_control_seconds || inputs.php_memory_limit || inputs.docker_build_args
         run: |
-          if [ ! -z ${{ inputs.cache_control_seconds }} ]; then
+          if [[ -n "${{ inputs.cache_control_seconds }}" ]]; then
             export CACHE_CONTROL_SECONDS_BUILD_ARGS=" --build-arg CACHE_CONTROL_SECONDS=${{ inputs.cache_control_seconds }}";
           fi
-          if [ ! -z ${{ inputs.php_memory_limit }} ]; then
+          if [[ -n "${{ inputs.php_memory_limit }}" ]]; then
             export PHP_MEMORY_LIMIT_BUILD_ARGS=" --build-arg PHP_MEMORY_LIMIT=${{ inputs.php_memory_limit }}";
           fi
-          if [ ! -z ${{ inputs.web_root }} ]; then
+          if [[ -n "${{ inputs.web_root }}" ]]; then
             export WEB_ROOT_BUILD_ARGS=" --build-arg WEB_ROOT=${{ inputs.web_root }}";
           fi
-          if [ ! -z ${{ inputs.docker_build_args }} ]; then
+          if [[ -n "${{ inputs.docker_build_args }}" ]]; then
             export DOCKER_BUILD_ARGS=" ${{ inputs.docker_build_args }} ";
           fi
-          
-          
-          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS $DOCKER_BUILD_ARGS"
+                    
+          export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS $DOCKER_BUILD_ARGS "
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
 
