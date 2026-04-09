@@ -145,8 +145,8 @@ jobs:
             echo "BUILD_CONTEXT_APPEND=${{ inputs.build_context }}/" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_PREPEND=/${{ inputs.build_context }}" >>$GITHUB_OUTPUT
           else
-            echo "BUILD CONTEXT NO"          
-            echo "BUILD_CONTEXT=''" >>$GITHUB_OUTPUT
+            echo "BUILD CONTEXT NO"
+            echo "BUILD_CONTEXT=" >> "$GITHUB_OUTPUT"
             echo "BUILD_CONTEXT_APPEND=''" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_PREPEND=''" >>$GITHUB_OUTPUT
           fi
