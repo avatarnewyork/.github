@@ -1,7 +1,7 @@
 name: build-test-deploy
 
 # cancel any other jobs in progress
-#concurrency: 
+#concurrency:
 #  group: build-test-deploy
 #  cancel-in-progress: true
 
@@ -12,7 +12,7 @@ on:
         description: 'PHP Version'
         default: '8.0.10'
         required: false
-        type: string    
+        type: string
       build_version:
         description: 'Apache Build Version'
         default: 'latest'
@@ -52,19 +52,19 @@ on:
         required: false
         type: string
         default: ''
-        
+
     secrets:
       ECS_SERVICE_INSTANCE_NAME_STAGE:
-        required: true  
+        required: true
       ECS_SERVICE_INSTANCE_NAME_PROD:
-        required: true  
+        required: true
       SLACK_CHANNEL:
         required: true
       GHOST_SUITE_ID:
         required: true
       SEC_CHECK_DISABLED:
         required: false
-  
+
 # Required Secrets:
 # ECS_SERVICE_INSTANCE_NAME_STAGE
 # ECS_SERVICE_INSTANCE_NAME_PROD
@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment_name: ${{ steps.set-envs.outputs.ENVIRONMENT_NAME }}
-      environment_short_name: ${{ steps.set-envs.outputs.ENVIRONMENT_SHORT_NAME }}      
+      environment_short_name: ${{ steps.set-envs.outputs.ENVIRONMENT_SHORT_NAME }}
       aws_region: ${{ steps.set-envs.outputs.AWS_REGION }}
       ecs_service_instance_name: ${{ steps.set-envs.outputs.ECS_SERVICE_INSTANCE_NAME }}
       ecs_service_name: ${{ steps.set-envs.outputs.ECS_SERVICE_NAME }}
@@ -99,13 +99,13 @@ jobs:
           color: gray
 
       - name: Checkout
-        uses: actions/checkout@v3      
+        uses: actions/checkout@v3
         with:
           path: 'project'
-        
+
       - name: set-platform
         id: set-platform
-        run: |          
+        run: |
           if ls project/*/authorize.php 1> /dev/null 2>&1; then
             export APP_PLATFORM=drupal7
           elif [[ -d "project/web/modules" ]]; then
@@ -134,7 +134,7 @@ jobs:
           if [[ -n "${{ inputs.docker_build_args }}" ]]; then
             export DOCKER_BUILD_ARGS=" ${{ inputs.docker_build_args }} ";
           fi
-                    
+
           export BUILD_ARGS=" $WEB_ROOT_BUILD_ARGS $CACHE_CONTROL_SECONDS_BUILD_ARGS $PHP_MEMORY_LIMIT_BUILD_ARGS $DOCKER_BUILD_ARGS "
           #echo "::set-output name=BUILD_ARGS::$BUILD_ARGS"
           echo "BUILD_ARGS=$BUILD_ARGS" >>$GITHUB_OUTPUT
@@ -150,17 +150,17 @@ jobs:
             echo "BUILD_CONTEXT_APPEND=" >>$GITHUB_OUTPUT
             echo "BUILD_CONTEXT_PREPEND=" >>$GITHUB_OUTPUT
           fi
-          
-        
+
+
       - name: Get Environment Name
         id: set-envs
-        run: |          
+        run: |
           if [[ ${{ github.ref_type }} == 'branch' ]]; then
             echo "ENVIRONMENT_NAME=stage"
             #echo "::set-output name=ENVIRONMENT_NAME::stage"
-            echo "ENVIRONMENT_NAME=stage" >>$GITHUB_OUTPUT          
+            echo "ENVIRONMENT_NAME=stage" >>$GITHUB_OUTPUT
             #echo "::set-output name=ENVIRONMENT_SHORT_NAME::stage"
-            echo "ENVIRONMENT_SHORT_NAME=stage" >>$GITHUB_OUTPUT          
+            echo "ENVIRONMENT_SHORT_NAME=stage" >>$GITHUB_OUTPUT
             export AWS_REGION=`echo ${{ env.AWS_REGION_STAGE }} | gzip | base64 -w0`
             if [[ "${{ inputs.ecs_service_instance_name_override }}" == 'none' ]]; then
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_STAGE }}-stage" | gzip | base64 -w0`
@@ -168,31 +168,31 @@ jobs:
             else
             export ECS_SERVICE_NAME=`echo "${{ inputs.ecs_service_instance_name_override }}-stage" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ inputs.ecs_service_instance_name_override }} | gzip | base64 -w0`
-            fi            
+            fi
             export AMI_ID=`echo ${{ env.AWS_AMI_ID_STAGE }} | gzip | base64 -w0`
           else
-            echo "ENVIRONMENT_NAME=production"          
+            echo "ENVIRONMENT_NAME=production"
             #echo "::set-output name=ENVIRONMENT_NAME::production"
-            echo "ENVIRONMENT_NAME=production" >>$GITHUB_OUTPUT          
+            echo "ENVIRONMENT_NAME=production" >>$GITHUB_OUTPUT
             #echo "::set-output name=ENVIRONMENT_SHORT_NAME::prod"
-            echo "ENVIRONMENT_SHORT_NAME=prod" >>$GITHUB_OUTPUT          
-            export AWS_REGION=`echo ${{ env.AWS_REGION_PROD }} | gzip | base64 -w0`                       
+            echo "ENVIRONMENT_SHORT_NAME=prod" >>$GITHUB_OUTPUT
+            export AWS_REGION=`echo ${{ env.AWS_REGION_PROD }} | gzip | base64 -w0`
             export ECS_SERVICE_NAME=`echo "${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }}-prod" | gzip | base64 -w0`
             export ECS_SERVICE_INSTANCE_NAME=`echo ${{ env.ECS_SERVICE_INSTANCE_NAME_PROD }} | gzip | base64 -w0`
-            export AMI_ID=`echo ${{ env.AWS_AMI_ID_PROD }} | gzip | base64 -w0`            
+            export AMI_ID=`echo ${{ env.AWS_AMI_ID_PROD }} | gzip | base64 -w0`
           fi
           #echo "::set-output name=AWS_REGION::$AWS_REGION"
-          echo "AWS_REGION=$AWS_REGION" >>$GITHUB_OUTPUT          
+          echo "AWS_REGION=$AWS_REGION" >>$GITHUB_OUTPUT
           #echo "::set-output name=ECS_SERVICE_NAME::$ECS_SERVICE_NAME"
-          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >>$GITHUB_OUTPUT          
+          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >>$GITHUB_OUTPUT
           #echo "::set-output name=ECS_SERVICE_INSTANCE_NAME::$ECS_SERVICE_INSTANCE_NAME"
-          echo "ECS_SERVICE_INSTANCE_NAME=$ECS_SERVICE_INSTANCE_NAME" >>$GITHUB_OUTPUT          
+          echo "ECS_SERVICE_INSTANCE_NAME=$ECS_SERVICE_INSTANCE_NAME" >>$GITHUB_OUTPUT
           #echo "::set-output name=AMI_ID::$AMI_ID"
           echo "AMI_ID=$AMI_ID" >>$GITHUB_OUTPUT
-          
+
         env:
           ECS_SERVICE_INSTANCE_NAME_STAGE: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_STAGE }}
-          ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}          
+          ECS_SERVICE_INSTANCE_NAME_PROD: ${{ secrets.ECS_SERVICE_INSTANCE_NAME_PROD }}
           AWS_REGION_STAGE: ${{ secrets.AWS_REGION_STAGE }}
           AWS_REGION_PROD: ${{ secrets.AWS_REGION_PROD }}
           AWS_REGION_PROD_EU: ${{ secrets.AWS_REGION_PROD_EU }}
@@ -214,7 +214,7 @@ jobs:
           AWS_DEFAULT_REGION: ${{ steps.decode-vars.outputs.aws_region }}
           SECRET_NAME: ${{ steps.decode-vars.outputs.SECRETS_NAME }}
           OUTPUT_PATH: '.env'
-          
+
       - name: set envs
         id: enc-sec
         run: |
@@ -230,9 +230,9 @@ jobs:
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "load secrets failed :thumbsdown:"
           color: failure
-          
 
-          
+
+
   sec-check:
     needs:
       - set-environment-params
@@ -244,7 +244,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-    
+
       # - name: Restore composer.lock cache
       #   id: cache-composer-lock
       #   uses: actions/cache@v3
@@ -266,7 +266,7 @@ jobs:
           key: ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
             ${{ env.cache-version }}-${{ hashFiles('**/composer.lock') }}
-            
+
       # - name: Copy composer.lock to cache
       #   id: copy-composer-lock-cache
       #   if: |
@@ -279,7 +279,7 @@ jobs:
       #- uses: symfonycorp/security-checker-action@v3
       #  id: run-sec-check
       #  if: |
-      #  #hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock'))          
+      #  #hashFiles(format('{0}{1}',needs.set-environment-params.outputs.build_context_append,'composer.cached.lock'))
       #  with:
       #    disable-exit-code: 1
       #    format: json
@@ -289,8 +289,8 @@ jobs:
         with:
           lock: ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock
           disable-exit-code: 1
-          format: json      
-          
+          format: json
+
       - name: Display the vulnerabilities as JSON
         run: |
           echo ${{ steps.run-sec-check.outputs.vulns }} >> composer_security_check_results.json
@@ -299,14 +299,14 @@ jobs:
             exit 1;
           fi
           cp ${{ needs.set-environment-params.outputs.build_context_append }}composer.lock ${{ needs.set-environment-params.outputs.build_context_append }}composer.cached.lock
-                      
+
       - name: Archive Security Check Results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: failed security check results
           path: composer_security_check_results.${{ github.run_id }}.json
-                  
+
       - name: notify composer.lock security check failed
         uses: someimportantcompany/github-actions-slack-message@v1
         id: slack-fail-sec-check
@@ -316,25 +316,79 @@ jobs:
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "composer.lock security check failed :thumbsdown: ${{ steps.run-sec-check.outputs.vulns }}"
           color: failure
-      
-    
-          
+
+
+  phpunit:
+    needs:
+      - set-environment-params
+    if: needs.set-environment-params.outputs.platform == 'drupal'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php_version }}
+          extensions: ctype, curl, dom, exif, gd, iconv, intl, mbstring, openssl, pdo_mysql, redis, simplexml, soap, sockets, tokenizer, xml, xmlwriter, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        working-directory: ${{ inputs.build_context || '.' }}
+        run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
+
+      - name: Run Drupal PHPUnit unit tests
+        working-directory: ${{ inputs.build_context || '.' }}
+        run: |
+          set --
+          [ -d web/modules/custom ] && set -- "$@" web/modules/custom
+          [ -d web/themes/custom ] && set -- "$@" web/themes/custom
+
+          if [ "$#" -eq 0 ]; then
+            echo "No custom Drupal extension directories were found."
+            exit 1
+          fi
+
+          TEST_DIRECTORIES=$(find "$@" -type d -path "*/tests/src/Unit" -print)
+          if [ -z "$TEST_DIRECTORIES" ]; then
+            echo "No custom Drupal unit tests were found."
+            exit 1
+          fi
+
+          echo "$TEST_DIRECTORIES"
+          find "$@" -type d -path "*/tests/src/Unit" \
+            -exec php vendor/bin/phpunit -c web/core/phpunit.xml.dist {} +
+
+      - name: notify phpunit failed
+        uses: someimportantcompany/github-actions-slack-message@v1
+        id: slack-fail-phpunit
+        if: failure()
+        with:
+          channel: ${{ secrets.SLACK_CHANNEL }}
+          bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
+          text: "phpunit tests failed :thumbsdown:"
+          color: failure
+
+
+
   build:
     outputs:
-      image_uri: ${{ steps.push-ecr.outputs.IMAGE_URI }}    
+      image_uri: ${{ steps.push-ecr.outputs.IMAGE_URI }}
     #runs-on: ubuntu-latest
     runs-on: ubuntu-latest #${{ needs.start-runner1.outputs.label }}
     #["self-hosted", "${{ needs.start-runner1.outputs.label }}"]
     needs:
       #- load-secrets
-      - set-environment-params      
+      - set-environment-params
     steps:
       - name: decode secrets
         id: decode-secrets
         run: |
           export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
-          
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -349,12 +403,12 @@ jobs:
           ECR_ACCOUNT="${{ env.ECR_ACCOUNT }}"
           ECR_NUMBER=$(echo $ECR_ACCOUNT | grep -oP '^\d+')
           echo "ECR_NUMBER=$ECR_NUMBER" >> $GITHUB_ENV
-          
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: "${{ env.ECR_NUMBER }},001650231941"        
+          registries: "${{ env.ECR_NUMBER }},001650231941"
 
       - uses: actions/checkout@v3
         with:
@@ -363,13 +417,13 @@ jobs:
           repository: 'avatarnewyork/docker-build'
           path: '.docker-build'
           ref: master
-          token: ${{ secrets.ORG_PROJECT_TOKEN }} 
+          token: ${{ secrets.ORG_PROJECT_TOKEN }}
 
       - name: Checkout
-        uses: actions/checkout@v3      
+        uses: actions/checkout@v3
         with:
           path: 'project'
-          
+
       # - name: Cache Builer Image
       #   id: cache-builder-image
       #   uses: actions/cache@v3
@@ -403,29 +457,29 @@ jobs:
             if [[ ! -f project/.docker-build/Dockerfile ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/Dockerfile" project/.docker-build/Dockerfile
             fi
-            
+
             echo "DEBUGGING"
             ls -lha .
             ls -lha ${{ inputs.build_context }}/
-            
+
             if [[ ! -f project/.docker-build/bootstrap.sh ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/.docker-build/bootstrap.sh
-              cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/${{ inputs.build_context }}/.docker-build/bootstrap.sh              
+              cp -a ".docker-build/${APP_PLATFORM}/bootstrap.sh" project/${{ inputs.build_context }}/.docker-build/bootstrap.sh
             fi
             if [[ ! -f project/.docker-build/.dockerignore ]]; then
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/.docker-build/.dockerignore
               cp -a ".docker-build/${APP_PLATFORM}/.dockerignore" project/${{ inputs.build_context }}/.dockerignore
             fi
           else
-            echo "DEBUG: project/.docker-build doesn't exists!"          
+            echo "DEBUG: project/.docker-build doesn't exists!"
             cp -a ".docker-build/${APP_PLATFORM}" project/.docker-build
-            cp -a ".docker-build/${APP_PLATFORM}" project/${{ needs.set-environment-params.outputs.build_context_append }}.docker-build            
-            ls -lha project/.docker-build            
+            cp -a ".docker-build/${APP_PLATFORM}" project/${{ needs.set-environment-params.outputs.build_context_append }}.docker-build
+            ls -lha project/.docker-build
           fi
-          
-          
+
+
       - name: Builder Image Build
-        if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}        
+        if: ${{ steps.cache-builder-image.outputs.cache-hit == false }}
         # TODO: DISABLE when done testing
         #continue-on-error: true
         run: |
@@ -439,7 +493,7 @@ jobs:
             ${{ needs.set-environment-params.outputs.custom_build_args }} -t builder \
             --file=project/.docker-build/Dockerfile project/${{ inputs.build_context }}
           docker save builder | gzip > builder.tar.gz
-        
+
       - name: Build and tag Amazon ECR Image
         env:
           #ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -453,7 +507,7 @@ jobs:
             echo "loading builder.tar.gz"
           fi
 
-          # --build-arg BOOTSTRAP_DISABLED=1 
+          # --build-arg BOOTSTRAP_DISABLED=1
           docker build --target=app --compress --cache-from=builder \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
@@ -466,7 +520,7 @@ jobs:
 
 
       - name: Push to Amazon ECR
-        id: push-ecr        
+        id: push-ecr
         env:
           #ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REGISTRY: ${{ env.ECR_ACCOUNT }}
@@ -475,10 +529,10 @@ jobs:
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:test          
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:test
           #echo "::set-output name=IMAGE_URI::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >>$GITHUB_OUTPUT                    
-          
+          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >>$GITHUB_OUTPUT
+
       - name: notify build failed
         uses: someimportantcompany/github-actions-slack-message@v1
         id: slack-fail-build
@@ -490,10 +544,10 @@ jobs:
           color: failure
 
   # stage only
-  load-test-database:    
+  load-test-database:
     #runs-on: ubuntu-latest
     runs-on: ubuntu-latest #${{ needs.start-runner2.outputs.label }}
-    #${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner          
+    #${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner
     needs:
       - set-environment-params
       #- load-secrets
@@ -501,7 +555,7 @@ jobs:
       always() &&
       github.ref == 'refs/heads/stage' &&
       inputs.skip_test == '0'
-    #if: startsWith(github.event.ref, 'refs/tags/v')    
+    #if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - name: decode secrets
         id: decode-secrets
@@ -516,50 +570,50 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           mask-aws-account-id: false
-          
+
       - name: Get MySQL Backup File from S3
         id: s3-backup-file
         run: |
-            export ECS_SERVICE_INSTANCE_NAME=${{ env.CLIENT_NAME }}
-            
-            export STANDARD_TEST_FILE_EXISTS=$(aws --region=${{ env.AWS_DEFAULT_REGION }} s3api list-objects-v2 --bucket avatar-backups-stage --prefix "${ECS_SERVICE_INSTANCE_NAME}-stage/" --query "Contents[?StorageClass=='STANDARD' && Key=='${ECS_SERVICE_INSTANCE_NAME}-stage/test.tgz'].Key | [-1]" --output text)
-            
-            if [[ $STANDARD_TEST_FILE_EXISTS == 'None' ]]; then
-              echo "no Standard Class file: test.tgz exists.  Checking backups"
-              # find latest backup file
-              export BACKUP_PREFIX=$(aws --region=${{ env.AWS_DEFAULT_REGION }} s3 ls "s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/" --recursive | sort | tail -n 1 | awk '{print $4}')
-              export STANDARD_EXISTS=$(aws --region=${{ env.AWS_DEFAULT_REGION }} s3api list-objects-v2 --bucket avatar-backups-stage --prefix "${ECS_SERVICE_INSTANCE_NAME}-stage/" --query "Contents[?StorageClass=='STANDARD' && Key=='$BACKUP_PREFIX'].Key | [-1]" --output text)
-              
-              if [[ $STANDARD_EXISTS == 'None' ]]; then
-                echo "no Standard Class backup file exists.  Restoring latest backup from Glacier to Standard"
-                # restore Glacier to Standard
-                aws s3api restore-object --bucket avatar-backups-stage --key $BACKUP_PREFIX --restore-request '{"Days":25,"GlacierJobParameters":{"Tier":"Expedited"}}'
-                sleep 100 # wait for restore
-              fi
-              export LAST_BACKUP_FILE=${BACKUP_PREFIX#*/}
-              aws --region=${{ env.AWS_DEFAULT_REGION }} s3 cp "s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/$LAST_BACKUP_FILE" "s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/test.tgz"              
+          export ECS_SERVICE_INSTANCE_NAME=${{ env.CLIENT_NAME }}
+
+          export STANDARD_TEST_FILE_EXISTS=$(aws --region=${{ env.AWS_DEFAULT_REGION }} s3api list-objects-v2 --bucket avatar-backups-stage --prefix "${ECS_SERVICE_INSTANCE_NAME}-stage/" --query "Contents[?StorageClass=='STANDARD' && Key=='${ECS_SERVICE_INSTANCE_NAME}-stage/test.tgz'].Key | [-1]" --output text)
+
+          if [[ $STANDARD_TEST_FILE_EXISTS == 'None' ]]; then
+            echo "no Standard Class file: test.tgz exists.  Checking backups"
+            # find latest backup file
+            export BACKUP_PREFIX=$(aws --region=${{ env.AWS_DEFAULT_REGION }} s3 ls "s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/" --recursive | sort | tail -n 1 | awk '{print $4}')
+            export STANDARD_EXISTS=$(aws --region=${{ env.AWS_DEFAULT_REGION }} s3api list-objects-v2 --bucket avatar-backups-stage --prefix "${ECS_SERVICE_INSTANCE_NAME}-stage/" --query "Contents[?StorageClass=='STANDARD' && Key=='$BACKUP_PREFIX'].Key | [-1]" --output text)
+
+            if [[ $STANDARD_EXISTS == 'None' ]]; then
+              echo "no Standard Class backup file exists.  Restoring latest backup from Glacier to Standard"
+              # restore Glacier to Standard
+              aws s3api restore-object --bucket avatar-backups-stage --key $BACKUP_PREFIX --restore-request '{"Days":25,"GlacierJobParameters":{"Tier":"Expedited"}}'
+              sleep 100 # wait for restore
             fi
+            export LAST_BACKUP_FILE=${BACKUP_PREFIX#*/}
+            aws --region=${{ env.AWS_DEFAULT_REGION }} s3 cp "s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/$LAST_BACKUP_FILE" "s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/test.tgz"
+          fi
 
       - name: Import test database
-        id: import-test-db            
-        run: |          
-            export ECS_SERVICE_INSTANCE_NAME=${{ env.CLIENT_NAME }}            
-            aws ecs --region=${{ env.AWS_DEFAULT_REGION }} describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${ECS_SERVICE_INSTANCE_NAME} |jq -rc '.services[0].deployments[0].networkConfiguration.awsvpcConfiguration' > awsvpcConfiguration.output.json
-            cat awsvpcConfiguration.output.json |jq '{"awsvpcConfiguration":.}' > awsvpcConfiguration.input.json
+        id: import-test-db
+        run: |
+          export ECS_SERVICE_INSTANCE_NAME=${{ env.CLIENT_NAME }}
+          aws ecs --region=${{ env.AWS_DEFAULT_REGION }} describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${ECS_SERVICE_INSTANCE_NAME} |jq -rc '.services[0].deployments[0].networkConfiguration.awsvpcConfiguration' > awsvpcConfiguration.output.json
+          cat awsvpcConfiguration.output.json |jq '{"awsvpcConfiguration":.}' > awsvpcConfiguration.input.json
 
-            echo "{\"containerOverrides\":[{\"name\":\"${ECS_SERVICE_INSTANCE_NAME}-mysqlbackup\",\"environment\":[{\"name\":\"DB_NAME\",\"value\":\"app_test\"},{\"name\":\"DB_RESTORE_TARGET\",\"value\":\"s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/test.tgz\"}]}]}" > overrides.json
-            export TASK_MYSQL_IMPORT=`aws ecs --region=${{ env.AWS_DEFAULT_REGION }} run-task --cluster ${{ env.ECS_CLUSTER }} --task-definition ${ECS_SERVICE_INSTANCE_NAME}-mysqlbackup --launch-type FARGATE  --started-by "${GITHUB_SHA:0:${#GITHUB_SHA} - 15}" --network-configuration file://awsvpcConfiguration.input.json --overrides file://overrides.json`
+          echo "{\"containerOverrides\":[{\"name\":\"${ECS_SERVICE_INSTANCE_NAME}-mysqlbackup\",\"environment\":[{\"name\":\"DB_NAME\",\"value\":\"app_test\"},{\"name\":\"DB_RESTORE_TARGET\",\"value\":\"s3://avatar-backups-stage/${ECS_SERVICE_INSTANCE_NAME}-stage/test.tgz\"}]}]}" > overrides.json
+          export TASK_MYSQL_IMPORT=`aws ecs --region=${{ env.AWS_DEFAULT_REGION }} run-task --cluster ${{ env.ECS_CLUSTER }} --task-definition ${ECS_SERVICE_INSTANCE_NAME}-mysqlbackup --launch-type FARGATE  --started-by "${GITHUB_SHA:0:${#GITHUB_SHA} - 15}" --network-configuration file://awsvpcConfiguration.input.json --overrides file://overrides.json`
 
-            export TASK_MYSQL_IMPORT_ARN=`echo $TASK_MYSQL_IMPORT |jq -rc '.tasks[0].taskArn'`
-            # store for later
-            echo -n 'TASK_MYSQL_IMPORT_ARN=' > task_mysql_import_arn.env
-            echo $TASK_MYSQL_IMPORT_ARN >> task_mysql_import_arn.env
-            echo $TASK_MYSQL_IMPORT > task_mysql_import.json
+          export TASK_MYSQL_IMPORT_ARN=`echo $TASK_MYSQL_IMPORT |jq -rc '.tasks[0].taskArn'`
+          # store for later
+          echo -n 'TASK_MYSQL_IMPORT_ARN=' > task_mysql_import_arn.env
+          echo $TASK_MYSQL_IMPORT_ARN >> task_mysql_import_arn.env
+          echo $TASK_MYSQL_IMPORT > task_mysql_import.json
 
       - name: Sync stage media files to test environment
         run: |
-            #aws --region=${{ env.AWS_DEFAULT_REGION }} s3 sync s3://${ECS_CLUSTER}/stage s3://${ECS_CLUSTER}/test > /tmp/artifacts/s3_sync_test.txt
-            aws --region=${{ env.AWS_DEFAULT_REGION }} s3 sync s3://${{ env.ECS_CLUSTER }}/stage s3://${{ env.ECS_CLUSTER }}/test             
+          #aws --region=${{ env.AWS_DEFAULT_REGION }} s3 sync s3://${ECS_CLUSTER}/stage s3://${ECS_CLUSTER}/test > /tmp/artifacts/s3_sync_test.txt
+          aws --region=${{ env.AWS_DEFAULT_REGION }} s3 sync s3://${{ env.ECS_CLUSTER }}/stage s3://${{ env.ECS_CLUSTER }}/test
 
       - name: Wait for mysql import to finish
         run: |
@@ -577,13 +631,14 @@ jobs:
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "load-test-database failed :thumbsdown:"
           color: failure
-          
+
   # stage only
   test-service-deploy:
     #runs-on: ubuntu-latest
-    runs-on: ubuntu-latest #${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
+    runs-on: ubuntu-latest #${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner
     needs:
-      - sec-check      
+      - sec-check
+      - phpunit
       #- load-secrets
       - set-environment-params
       - build
@@ -591,8 +646,9 @@ jobs:
       always() &&
       github.ref == 'refs/heads/stage' &&
       inputs.skip_test == '0' &&
-      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
-    #if: startsWith(github.event.ref, 'refs/tags/v')    
+      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped') &&
+      (needs.phpunit.result == 'success' || needs.phpunit.result == 'skipped')
+    #if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - name: decode secrets
         id: decode-secrets
@@ -616,16 +672,16 @@ jobs:
 
           # generate updated task def
           echo "$TASK_DEFINITION" | jq --arg IMAGE "${{ needs.build.outputs.image_uri }}" '.taskDefinition | .containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)' > task-def.json
-          
+
           # register task def
           export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}-test" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
           #echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
           echo "ECS_SERVICE_TASK_DEF_ARN=$ECS_SERVICE_TASK_DEF_ARN" >>$GITHUB_OUTPUT
-          
+
       - name: spin up test service with test image (~3m)
         run: |
           aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 1 --force-new-deployment --task-definition=${{ steps.task-def.outputs.ECS_SERVICE_TASK_DEF_ARN }} > ecs_service_update.json
-          
+
       - name: wait for service to become stable
         run: |
           aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}-test
@@ -642,7 +698,7 @@ jobs:
 
   test-run-bootstrap:
     #runs-on: ubuntu-latest
-    runs-on: ubuntu-latest #${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner              
+    runs-on: ubuntu-latest #${{ needs.start-runner1.outputs.label }} # run the job on the newly created runner
     needs:
       #- load-secrets
       - set-environment-params
@@ -651,10 +707,10 @@ jobs:
     if: |
       always() &&
       github.ref == 'refs/heads/stage' &&
-      inputs.skip_test == '0' &&      
-      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')      
-    
-    #if: startsWith(github.event.ref, 'refs/tags/v')    
+      inputs.skip_test == '0' &&
+      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')
+
+    #if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - name: decode secrets
         id: decode-secrets
@@ -669,21 +725,21 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           mask-aws-account-id: false
-      
+
       - name: Run Bootstrap
         run: |
           set -x
           aws ecs --region=${{ env.AWS_DEFAULT_REGION }} describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }} |jq -rc '.services[0].deployments[0].networkConfiguration.awsvpcConfiguration' > awsvpcConfiguration.output.json
-          cat awsvpcConfiguration.output.json |jq '{"awsvpcConfiguration":.}' > awsvpcConfiguration.input.json            
+          cat awsvpcConfiguration.output.json |jq '{"awsvpcConfiguration":.}' > awsvpcConfiguration.input.json
           echo "{\"containerOverrides\":[{\"name\":\"${{ env.CLIENT_NAME }}-test\", \"command\":[\"/bootstrap.sh\"]}]}" > overrides.json
           export TASK_BOOTSTRAP=`aws ecs --region=${{ env.AWS_DEFAULT_REGION }} run-task --cluster ${{ env.ECS_CLUSTER }} --task-definition ${{ env.CLIENT_NAME }}-test --launch-type FARGATE  --started-by "${GITHUB_SHA:0:${#GITHUB_SHA} - 15}" --network-configuration file://awsvpcConfiguration.input.json --overrides file://overrides.json`
-          
+
           export TASK_BOOTSTRAP_ARN=`echo $TASK_BOOTSTRAP |jq -rc '.tasks[0].taskArn'`
           # store for later
           echo -n 'TASK_BOOTSTRAP_ARN=' > task_bootstrap_arn.env
           echo $TASK_BOOTSTRAP_ARN >> task_bootstrap_arn.env
           echo $TASK_BOOTSTRAP > task_bootstrap_test.json
-          
+
           #aws ecs wait tasks-stopped --region=${{ env.AWS_DEFAULT_REGION }} --cluster ${{ env.ECS_CLUSTER }} --tasks $TASK_BOOTSTRAP_ARN
 
       - name: Wait for Bootstrap to finish
@@ -691,7 +747,7 @@ jobs:
           set -x
           source task_bootstrap_arn.env
           aws ecs --region=${{ env.AWS_DEFAULT_REGION }} wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks "$TASK_BOOTSTRAP_ARN"
-          
+
       - name: Archive Bootstrap Task
         uses: actions/upload-artifact@v4
         with:
@@ -708,22 +764,22 @@ jobs:
           text: "test-bootstrap failed :thumbsdown:"
           color: failure
 
-      
-  #stage only          
+
+  #stage only
   test-run:
     #runs-on: ubuntu-latest
-    runs-on: ubuntu-latest #${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner              
+    runs-on: ubuntu-latest #${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner
     needs:
       - test-run-bootstrap
       - test-service-deploy
-      - set-environment-params      
+      - set-environment-params
       #- load-secrets
     if: |
       always() &&
       github.ref == 'refs/heads/stage' &&
-      inputs.skip_test == '0' &&      
-      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')            
-    #if: startsWith(github.event.ref, 'refs/tags/v')    
+      inputs.skip_test == '0' &&
+      (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped')
+    #if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - name: decode secrets
         id: decode-secrets
@@ -731,45 +787,45 @@ jobs:
           export AWS_ENVS=$(echo ${{ needs.set-environment-params.outputs.secrets_enc }} | base64 -d | gunzip)
           echo $AWS_ENVS | awk -v RS=" " '{print $1}' >> $GITHUB_ENV
 
-      # TODO Required for Test Report?
-      #- name: Checkout
-      #  uses: actions/checkout@v2                  
-          
+          # TODO Required for Test Report?
+          #- name: Checkout
+          #  uses: actions/checkout@v2
+
       - name: Run Ghost Inspector Suite
         uses: DATADEER/run-ghost-inspector-suite-action@v1.1
         with:
           suiteID: ${{ secrets.GHOST_SUITE_ID }}
           startURL: "https://test.${{ env.CLIENT_NAME }}.avatarnewyork.site/"
-          GHOST_INSPECTOR_API_KEY: ${{ secrets.GHOST_API_KEY }}          
+          GHOST_INSPECTOR_API_KEY: ${{ secrets.GHOST_API_KEY }}
 
-      # tmp remove - save about 40 secs - or add docker image to AMI
-      #- name: Store Ghost Inspector Test Results
-      #  run: |
-      #      export GHOST_TEST_RESULT_ID=`curl "https://api.ghostinspector.com/v1/suites/${{ secrets.GHOST_SUITE_ID }}/results/?count=1&apiKey=${{ secrets.GHOST_API_KEY }}" |jq -j ".data[0]._id"`;
-      #      curl "https://api.ghostinspector.com/v1/suite-results/${GHOST_TEST_RESULT_ID}/xunit/?apiKey=${{ secrets.GHOST_API_KEY }}" > ghostinspector_results.xunit.xml;
-      #      cat ghostinspector_results.xunit.xml | docker run --rm --name=dotnet -i avatarnewyork/dotnet:latest /xunit2junit.sh > ghostinspector_results_processed.junit.xml;
+            # tmp remove - save about 40 secs - or add docker image to AMI
+            #- name: Store Ghost Inspector Test Results
+            #  run: |
+            #      export GHOST_TEST_RESULT_ID=`curl "https://api.ghostinspector.com/v1/suites/${{ secrets.GHOST_SUITE_ID }}/results/?count=1&apiKey=${{ secrets.GHOST_API_KEY }}" |jq -j ".data[0]._id"`;
+            #      curl "https://api.ghostinspector.com/v1/suite-results/${GHOST_TEST_RESULT_ID}/xunit/?apiKey=${{ secrets.GHOST_API_KEY }}" > ghostinspector_results.xunit.xml;
+            #      cat ghostinspector_results.xunit.xml | docker run --rm --name=dotnet -i avatarnewyork/dotnet:latest /xunit2junit.sh > ghostinspector_results_processed.junit.xml;
 
 
-      #- name: Archive Test Results Artifacts 
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: Upload GI Junit Results
-      #    path: |
-      #      *.xml
-            
-      #- name: Test Report
-      #  uses: phoenix-actions/test-reporting@v8
-      #  id: test-report               # Set ID reference for step
-      #  if: success() || failure()    # run this step even if previous step failed
-      #  with:
-      #    name: GI Tests            # Name of the check run which will be created
-      #    path: ./ghostinspector_results_processed.junit.xml    # Path to test results
-      #    reporter: java-junit        # Format of test results
-          
-      #- name: Read output variables
-      #  run: |
-      #    echo "url is ${{ steps.test-report.outputs.runHtmlUrl }}"
-          
+            #- name: Archive Test Results Artifacts
+            #  uses: actions/upload-artifact@v4
+            #  with:
+            #    name: Upload GI Junit Results
+            #    path: |
+            #      *.xml
+
+          #- name: Test Report
+          #  uses: phoenix-actions/test-reporting@v8
+          #  id: test-report               # Set ID reference for step
+          #  if: success() || failure()    # run this step even if previous step failed
+          #  with:
+          #    name: GI Tests            # Name of the check run which will be created
+          #    path: ./ghostinspector_results_processed.junit.xml    # Path to test results
+          #    reporter: java-junit        # Format of test results
+
+          #- name: Read output variables
+          #  run: |
+          #    echo "url is ${{ steps.test-report.outputs.runHtmlUrl }}"
+
       - name: notify test-run
         uses: someimportantcompany/github-actions-slack-message@v1
         id: slack-fail-test-run
@@ -779,24 +835,26 @@ jobs:
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "test-run failed :thumbsdown:"
           color: failure
-          
+
   deployment:
     #runs-on: ubuntu-latest
-    runs-on: ubuntu-latest #${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner              
+    runs-on: ubuntu-latest #${{ needs.start-runner2.outputs.label }} # run the job on the newly created runner
     needs:
       - sec-check
+      - phpunit
       - load-test-database
       - set-environment-params
       #- load-secrets
       - test-run
       - build
     if: |
-      always() && 
+      always() &&
       (needs.test-service-deploy.result == 'success' || needs.test-service-deploy.result == 'skipped') &&
       (needs.test-run.result == 'success' || needs.test-run.result == 'skipped') &&
-      (needs.load-test-database.result == 'success' || needs.load-test-database.result == 'skipped') &&      
+      (needs.load-test-database.result == 'success' || needs.load-test-database.result == 'skipped') &&
       (needs.sec-check.result == 'success' || needs.sec-check.result == 'skipped') &&
-      (needs.build.result == 'success') 
+      (needs.phpunit.result == 'success' || needs.phpunit.result == 'skipped') &&
+      (needs.build.result == 'success')
     steps:
       - name: decode secrets
         id: decode-secrets
@@ -823,29 +881,29 @@ jobs:
 
           # generate updated task def
           echo "$TASK_DEFINITION" | jq --arg IMAGE "${{ needs.build.outputs.image_uri }}" '.taskDefinition | .containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)' > task-def.json
-          
+
           # register task def
           export ECS_SERVICE_TASK_DEF_ARN=`aws ecs register-task-definition --family "${{ env.CLIENT_NAME }}" --region ${{ env.AWS_DEFAULT_REGION }}  --cli-input-json file://task-def.json | jq -rc '.taskDefinition.taskDefinitionArn'`
           #echo "::set-output name=ECS_SERVICE_TASK_DEF_ARN::$ECS_SERVICE_TASK_DEF_ARN"
-          echo "ECS_SERVICE_TASK_DEF_ARN=$ECS_SERVICE_TASK_DEF_ARN" >>$GITHUB_OUTPUT                    
-          
+          echo "ECS_SERVICE_TASK_DEF_ARN=$ECS_SERVICE_TASK_DEF_ARN" >>$GITHUB_OUTPUT
+
       - name: spin up service with image (~3m)
         run: |
           aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }} --force-new-deployment --task-definition=${{ steps.task-def.outputs.ECS_SERVICE_TASK_DEF_ARN }} > ecs_service_update.json
-          
+
       - name: wait for service to become stable
         run: |
           aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }}
 
-      
+
       - name: Run Bootstrap
         run: |
           set -x
           aws ecs --region=${{ env.AWS_DEFAULT_REGION }} describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.CLIENT_NAME }} |jq -rc '.services[0].deployments[0].networkConfiguration.awsvpcConfiguration' > awsvpcConfiguration.output.json
-          cat awsvpcConfiguration.output.json |jq '{"awsvpcConfiguration":.}' > awsvpcConfiguration.input.json            
+          cat awsvpcConfiguration.output.json |jq '{"awsvpcConfiguration":.}' > awsvpcConfiguration.input.json
           echo "{\"containerOverrides\":[{\"name\":\"${{ env.CLIENT_NAME }}\", \"command\":[\"/bootstrap.sh\"]}]}" > overrides.json
           export TASK_BOOTSTRAP=`aws ecs --region=${{ env.AWS_DEFAULT_REGION }} run-task --cluster ${{ env.ECS_CLUSTER }} --task-definition ${{ env.CLIENT_NAME }} --launch-type FARGATE  --started-by "${GITHUB_SHA:0:${#GITHUB_SHA} - 15}" --network-configuration file://awsvpcConfiguration.input.json --overrides file://overrides.json`
-          
+
           export TASK_BOOTSTRAP_ARN=`echo $TASK_BOOTSTRAP |jq -rc '.tasks[0].taskArn'`
           # store for later
           echo -n 'TASK_BOOTSTRAP_ARN=' > task_bootstrap_arn.env
@@ -857,7 +915,7 @@ jobs:
           set -x
           source task_bootstrap_arn.env
           aws ecs --region=${{ env.AWS_DEFAULT_REGION }} wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks "$TASK_BOOTSTRAP_ARN"
-          
+
       - name: Archive Bootstrap Task
         uses: actions/upload-artifact@v4
         with:
@@ -872,8 +930,8 @@ jobs:
           channel: ${{ secrets.SLACK_CHANNEL }}
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "deploy completed successfully :rocket:"
-          color: success 
-          
+          color: success
+
       - name: notify deploy fail
         uses: someimportantcompany/github-actions-slack-message@v1
         id: slack-fail-deploy
@@ -912,10 +970,10 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           mask-aws-account-id: false
-            
+
       - name: spin down test service (~5m)
         run: |
-            aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 0
+          aws --region=${{ env.AWS_DEFAULT_REGION }} ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.CLIENT_NAME }}-test --desired-count 0
 
       - name: notify tear-down
         uses: someimportantcompany/github-actions-slack-message@v1
@@ -926,4 +984,3 @@ jobs:
           bot-token: ${{ secrets.SLACK_ACCESS_TOKEN }}
           text: "tear-down failed :thumbsdown:"
           color: failure
-          
