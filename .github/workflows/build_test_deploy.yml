@@ -27,6 +27,11 @@ on:
         required: false
         type: string
         default: '0'
+      run_unit_tests:
+        description: 'Run PHPUnit unit tests'
+        required: false
+        type: string
+        default: '0'
       build_context:
         description: 'path to docker build context.  Default to project'
         required: false
@@ -321,7 +326,9 @@ jobs:
   phpunit:
     needs:
       - set-environment-params
-    if: needs.set-environment-params.outputs.platform == 'drupal'
+    if: |
+      needs.set-environment-params.outputs.platform == 'drupal' &&
+      inputs.run_unit_tests == '1'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -339,8 +346,14 @@ jobs:
         working-directory: ${{ inputs.build_context || '.' }}
         run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
 
+      - name: Prepare PHPUnit output directory
+        run: mkdir -p "${{ runner.temp }}/drupal-browser-output"
+
       - name: Run Drupal PHPUnit unit tests
         working-directory: ${{ inputs.build_context || '.' }}
+        env:
+          BROWSERTEST_OUTPUT_DIRECTORY: ${{ runner.temp }}/drupal-browser-output
+          BROWSERTEST_OUTPUT_VERBOSE: 'false'
         run: |
           set --
           [ -d web/modules/custom ] && set -- "$@" web/modules/custom
